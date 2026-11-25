@@ -77,6 +77,41 @@ aside { background: var(--panel); }
 .row-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty { color: var(--muted); padding: 24px 16px; }
+.proj { display: flex; align-items: baseline; gap: 8px; padding: 14px 16px 4px; font-size: 12px; color: var(--muted); border-left: 2px solid transparent; }
+.proj:first-child { padding-top: 8px; }
+.proj:hover { color: var(--green); }
+.proj.sel { color: var(--green); border-left-color: var(--green); background: var(--green-bg); }
+.proj .pname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj .pname::before { content: "▸ "; color: var(--faint); }
+.proj .pcount { flex: none; font-size: 11px; color: var(--faint); }
+.proj .pcount.on { color: var(--green); }
+.row.in-proj { padding-left: 26px; }
+.row.gone { opacity: .45; }
+/* project page */
+.tpanel { margin: 16px 0 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 6px; }
+.tpanel-h { display: flex; gap: 10px; align-items: baseline; font-size: 12px; color: var(--muted); padding: 2px 8px 4px; }
+.tpanel-h b { font-weight: 400; flex: 1; }
+.tpanel-h b::before { content: "# "; color: var(--faint); }
+.tpanel-h a { color: var(--green-dim); }
+.tpanel-h a:hover { color: var(--green); }
+.tpanel .pnote { padding: 4px 8px 6px; font-size: 12px; color: var(--faint); }
+.intro { color: var(--muted); padding: 28px 0 8px; font-size: 13px; line-height: 1.7; }
+.intro b { color: var(--text); font-weight: 400; }
+.step.wake .name { color: var(--green-dim); }
+.psec { padding: 24px 0 4px; }
+.psec h2 { font-size: 13px; font-weight: 400; color: var(--muted); margin-bottom: 10px; display: flex; gap: 10px; align-items: baseline; }
+.psec h2::before { content: "#"; color: var(--faint); }
+.psec h2 .spacer { flex: 1; }
+.psec .new { padding: 0; }
+.prow { display: flex; gap: 10px; align-items: baseline; padding: 7px 8px; border-radius: 4px; }
+.prow:hover { background: var(--raise); }
+.prow .dot { align-self: center; }
+.prow .pt1 { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prow .pt2 { flex: none; font-size: 12px; color: var(--muted); }
+.notes { width: 100%; min-height: 120px; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 12px; line-height: 1.55; font-size: 13px; }
+.notes:focus { border-color: var(--green-dim); }
+.saved { font-size: 12px; color: var(--green-dim); }
+.repo-line { font-size: 12px; color: var(--muted); margin-bottom: 4px; overflow-wrap: anywhere; }
 
 main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .col { width: 100%; max-width: 920px; margin: 0 auto; padding: 0 20px; }
@@ -91,14 +126,31 @@ main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .prompt-wrap::before { content: "›"; color: var(--green); text-shadow: var(--glow); }
 .prompt { min-height: 140px; line-height: 1.6; }
 .fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 14px; }
-@media (min-width: 700px) { .fields { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; } }
+@media (min-width: 700px) { .fields { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; } .fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .field { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding: 10px 2px; }
 .field label { color: var(--muted); flex: none; font-size: 13px; }
 .field label::after { content: ":"; }
 .field:focus-within { border-color: var(--green-dim); }
-.recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-width: 0; }
-.recent button { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 1px 8px; border-radius: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent button:hover { color: var(--green); border-color: var(--green-dim); }
+.clear { color: var(--faint); font-size: 12px; flex: none; }
+.clear:hover { color: var(--green); }
+.picks { display: grid; margin-top: 6px; min-width: 0; }
+.pick { display: flex; align-items: baseline; gap: 10px; padding: 5px 8px; border-radius: 4px; font-size: 13px; text-align: left; min-width: 0; }
+.pick:hover, .pick.hi { background: var(--green-bg); }
+.pick:hover .pn, .pick.hi .pn { color: var(--green); }
+.pick .pn { flex: none; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .pd { flex: 1; min-width: 0; color: var(--faint); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .pt { flex: none; color: var(--muted); font-size: 11.5px; }
+.pick .lock { color: var(--warn); font-size: 11px; flex: none; }
+select.sel { appearance: none; -webkit-appearance: none; font: inherit; color: var(--text); background: transparent; border: 0; outline: 0; width: 100%; cursor: pointer; padding: 0; }
+select.sel option { background: var(--raise); color: var(--text); }
+select.sel:disabled { color: var(--faint); cursor: default; }
+.field:has(select.sel)::after { content: "▾"; color: var(--faint); font-size: 11px; }
+.opts { display: flex; gap: 16px; font-size: 12px; color: var(--muted); padding: 0 0 6px 18px; }
+.opts label { display: inline-flex; align-items: center; gap: 6px; }
+.opts select.sel { width: auto; field-sizing: content; color: var(--green-dim); font-size: 12px; }
+.opts select.sel:hover { color: var(--green); }
+.opts select.sel:disabled { color: var(--faint); }
+.picks .note { font-size: 12px; color: var(--faint); padding: 5px 8px; }
 .actions { display: flex; align-items: center; gap: 14px; margin-top: 20px; }
 .hint { color: var(--faint); font-size: 12px; }
 .start { background: var(--green); color: var(--bg); font-weight: 700; padding: 8px 20px; border-radius: 4px; box-shadow: var(--glow); }
@@ -132,11 +184,27 @@ pre { font: 12.5px/1.55 var(--mono); background: var(--panel); border: 1px solid
 .working { color: var(--muted); font-size: 13px; padding-bottom: 16px; }
 .cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--green); box-shadow: var(--glow); vertical-align: -2px; margin-left: 6px; animation: blink 1s steps(2, start) infinite; }
 
+/* shared files */
+.asset { display: grid; gap: 6px; justify-items: start; }
+.asset .cap { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.asset .cap::before { content: "# "; color: var(--faint); }
+.asset .cap a { color: var(--green-dim); margin-left: 8px; }
+.asset img, .asset video { display: block; max-width: 100%; max-height: 60vh; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+.asset img { cursor: zoom-in; }
+.asset .file { color: var(--green); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; font-size: 13px; }
+.asset .file:hover { border-color: var(--green-dim); background: var(--green-bg); }
+.step .detail img { max-width: 100%; max-height: 50vh; border: 1px solid var(--line); border-radius: 4px; cursor: zoom-in; }
+.lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(2, 4, 2, .94); overflow: auto; display: grid; place-items: center; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+.lightbox img { max-width: 100vw; max-height: 100dvh; cursor: zoom-in; }
+.lightbox.full img { max-width: none; max-height: none; cursor: zoom-out; }
+.lightbox .lb-bar { position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 12px; display: flex; gap: 8px; z-index: 1; }
+.lightbox .lb-bar a, .lightbox .lb-bar button { background: rgba(10, 13, 10, .85); border: 1px solid var(--line); color: var(--green); border-radius: 4px; padding: 4px 10px; font-size: 13px; }
+
 /* composer */
 footer { flex: none; padding: 10px 0 calc(env(safe-area-inset-bottom) + 12px); border-top: 1px solid var(--line); background: var(--bg); }
 .composer { display: flex; align-items: flex-end; gap: 10px; }
 .composer::before { content: "›"; color: var(--green); text-shadow: var(--glow); padding: 6px 0; }
-.composer textarea { max-height: 40vh; padding: 6px 0; }
+.composer textarea { max-height: 40vh; padding: 6px 0; line-height: 1.5; overflow-y: hidden; }
 .send { flex: none; color: var(--green); border: 1px solid var(--green-dim); border-radius: 4px; padding: 4px 12px; font-size: 13px; }
 .send:hover { background: var(--green-bg); }
 .send:disabled { color: var(--faint); border-color: var(--line); background: none; }
@@ -222,6 +290,7 @@ a.node:hover { border-color: var(--green); background: var(--green-bg); }
   <div class="bar"><span class="brand">rux</span><span class="seg" data-seg></span><span class="spacer"></span><span class="live" id="live"></span></div>
   <main class="mon" id="mon"></main>
 </div>
+<script src="ui.js"></script>
 <script>
 "use strict";
 const $ = (s, el = document) => el.querySelector(s);
@@ -249,22 +318,40 @@ const offline = (t) => !t.connected && (t.status === "running" || t.status === "
 const statusText = (t) => offline(t) ? "offline"
   : ({ provisioning: "setting up", starting: "starting", running: "working", idle: "ready", failed: "failed", destroying: "removing", destroyed: "removed" }[t.status] || t.status);
 const dot = (t) => h("span", { class: "dot " + (offline(t) ? "" : t.status) });
-const autogrow = (ta) => { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; };
+// Grow a textarea with its content; it only scrolls once it hits its max-height.
+const autogrow = (ta) => {
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + "px";
+  ta.style.overflowY = ta.scrollHeight > ta.clientHeight + 1 ? "auto" : "hidden";
+};
 const finePointer = matchMedia("(pointer: fine)").matches;
 const wide = matchMedia("(min-width: 900px)");
 
 // ---------- sidebar list (always live) ----------
-let threads = [], currentId = null;
+let threads = [], projects = [], currentId = null, currentProject = null;
+const threadRow = (t, cls = "") => h("a", { class: "row " + cls + (t.id === currentId ? " sel" : "") + (t.status === "destroyed" ? " gone" : ""), href: "#/t/" + encodeURIComponent(t.id) },
+  dot(t),
+  h("div", { class: "row-main" },
+    h("div", { class: "row-title" }, t.title),
+    h("div", { class: "row-sub" }, `${t.branch ? t.branch + " · " : ""}${t.model ? t.model + " · " : ""}${statusText(t)} · ${ago(t.updated)}`)));
 function renderList() {
   const list = $("#list");
-  if (!threads.length) { list.replaceChildren(h("div", { class: "empty" }, "no threads yet")); return; }
-  list.replaceChildren(...threads.map(t => h("a", { class: "row" + (t.id === currentId ? " sel" : ""), href: "#/t/" + encodeURIComponent(t.id) },
-    dot(t),
-    h("div", { class: "row-main" },
-      h("div", { class: "row-title" }, t.title),
-      h("div", { class: "row-sub" }, `${shortRepo(t.repo)}${t.branch ? "@" + t.branch : ""} · ${statusText(t)} · ${ago(t.updated)}`)))));
+  if (!projects.length && !threads.length) { list.replaceChildren(h("div", { class: "empty" }, "no threads yet")); return; }
+  const out = [];
+  for (const p of projects) {
+    const ts = threads.filter(t => t.project === p.id && t.status !== "destroyed" && t.kind !== "manager");
+    if (!ts.length && !p.manager && p.id === "scratch") continue;
+    out.push(h("a", { class: "proj" + (p.id === currentProject ? " sel" : ""), href: "#/p/" + encodeURIComponent(p.id) },
+      h("span", { class: "pname" }, p.name),
+      p.active ? h("span", { class: "pcount on" }, p.active + " active") : p.manager_status === "running" ? h("span", { class: "pcount on" }, "manager working")
+        : ts.length ? h("span", { class: "pcount" }, ts.length) : null));
+    out.push(...ts.map(t => threadRow(t, "in-proj")));
+  }
+  list.replaceChildren(...out);
 }
-async function loadList() { try { threads = await api("GET", "/api/threads"); renderList(); } catch {} }
+async function loadList() {
+  try { [threads, projects] = await Promise.all([api("GET", "/api/threads"), api("GET", "/api/projects")]); renderList(); } catch {}
+}
 loadList();
 setInterval(loadList, 4000);
 
@@ -285,68 +372,282 @@ function route() {
   lastWork = location.hash || "#/";
   store.set("rux.mode", "work");
   renderSeg();
-  const m = location.hash.match(/^#\/t\/(.+)$/);
+  const m = location.hash.match(/^#\/t\/(.+)$/), pm = location.hash.match(/^#\/p\/([^/]+)(\/settings)?$/), nm = location.hash.match(/^#\/new\/p\/([^/]+)$/);
   currentId = m ? decodeURIComponent(m[1]) : null;
+  currentProject = pm ? decodeURIComponent(pm[1]) : null;
   renderList();
   if (m) { document.body.dataset.view = "thread"; showThread(currentId); }
+  else if (pm && pm[2]) { document.body.dataset.view = "project"; showProjectSettings(currentProject); }
+  else if (pm) { document.body.dataset.view = "project"; showProject(currentProject); }
+  else if (nm) { document.body.dataset.view = "new"; showNew(decodeURIComponent(nm[1])); }
   else if (location.hash === "#/new") { document.body.dataset.view = "new"; showNew(); }
   else { document.body.dataset.view = "home"; showNew(); } // wide screens show the new-thread form beside the list
 }
 addEventListener("hashchange", route);
 
 // ---------- new thread ----------
-function showNew() {
-  $("#hdr").replaceChildren(h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), h("span", { class: "title" }, "new thread"));
-  const saved = JSON.parse(store.get("rux.new") || "{}");
+let repoList = null; // [{name, private, pushed, default_branch, description}]
+let repoNote = "";
+async function loadRepos() {
+  try {
+    const r = await api("GET", "/api/repos");
+    repoList = r.repos || [];
+    repoNote = !r.enabled ? "github off (start rux serve with --gh)" : r.error ? "couldn't list repos: " + r.error : "";
+  } catch (err) { repoList = repoList || []; repoNote = "couldn't list repos: " + err.message; }
+}
+let modelList = null; // [{value, name, description, efforts}]
+async function loadModels() { try { modelList = (await api("GET", "/api/models")).models || []; } catch { modelList = modelList || []; } return modelList; }
+const shortModel = (m) => (m || "").replace(/^claude-/, "").replace(/-(\d+)-(\d+)(-\d{8})?$/, " $1.$2");
+// fillModels fills a model <select> and its effort <select>; values "" mean claude's default.
+function fillModels(modelSel, effortSel, model, effort) {
+  const list = modelList || [];
+  const opts = list.map(m => h("option", { value: m.value === "default" ? "" : m.value, title: m.description || "" },
+    m.value === "default" ? "default" + (m.description ? " · " + m.description.split(" · ")[0].toLowerCase() : "") : (m.name || m.value).toLowerCase()));
+  if (model && !list.some(m => m.value === model)) opts.push(h("option", { value: model }, model));
+  if (!opts.length) opts.push(h("option", { value: "" }, "default"));
+  modelSel.replaceChildren(...opts);
+  modelSel.value = model || "";
+  const cur = list.find(m => (m.value === "default" ? "" : m.value) === modelSel.value);
+  const efforts = cur ? cur.efforts || [] : ["low", "medium", "high", "xhigh", "max"];
+  effortSel.replaceChildren(h("option", { value: "" }, "default"), ...efforts.map(e => h("option", { value: e }, e)));
+  effortSel.disabled = !efforts.length;
+  effortSel.value = efforts.includes(effort) ? effort : "";
+}
+function showNew(pid) {
+  const proj = pid ? projects.find(p => p.id === pid) : null;
+  $("#hdr").replaceChildren(h("a", { class: "back", href: proj ? "#/p/" + encodeURIComponent(pid) : "#/", "aria-label": "Back" }, "‹"), h("span", { class: "title" }, proj ? "new thread · " + proj.name : "new thread"));
+  const saved = proj ? { repo: proj.repo ? shortRepo(proj.repo) : "", branch: proj.branch || "", model: proj.model || "", effort: proj.effort || "" } : JSON.parse(store.get("rux.new") || "{}");
   const prompt = h("textarea", { class: "prompt", placeholder: "what should claude do?", rows: 5 });
-  const repo = h("input", { placeholder: "owner/name or git url", autocapitalize: "off", autocorrect: "off", spellcheck: "false", value: saved.repo || "" });
+  const repo = h("input", { placeholder: "blank · type to search repos", autocapitalize: "off", autocorrect: "off", spellcheck: "false", value: saved.repo || "" });
   const branch = h("input", { placeholder: "default", autocapitalize: "off", autocorrect: "off", spellcheck: "false", value: saved.branch || "" });
-  const recent = h("div", { class: "recent" });
+  const clear = h("button", { type: "button", class: "clear", title: "blank workspace", onclick: () => { repo.value = ""; branch.value = ""; update(); repo.focus(); } }, "× none");
+  const picks = h("div", { class: "picks" });
   const start = h("button", { class: "start", type: "submit" }, "run");
+  const modelSel = h("select", { class: "sel" }), effortSel = h("select", { class: "sel" });
+  const fillNew = (m, e) => fillModels(modelSel, effortSel, m, e);
+  modelSel.addEventListener("change", () => fillNew(modelSel.value, effortSel.value));
+  fillNew(saved.model || "", saved.effort || "");
+  if (modelList == null) loadModels().then(() => form.isConnected && fillNew(modelSel.value || saved.model || "", effortSel.value || saved.effort || ""));
   const form = h("form", { class: "new" },
-    h("h2", {}, "new thread"),
+    h("h2", {}, proj ? "new thread in " + proj.name : "new thread"),
     h("div", { class: "prompt-wrap" }, prompt),
     h("div", { class: "fields" },
-      h("div", {}, h("div", { class: "field" }, h("label", {}, "repo"), repo), recent),
-      h("div", {}, h("div", { class: "field" }, h("label", {}, "branch"), branch))),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "repo"), repo, clear), picks),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "branch"), branch)),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "model"), modelSel)),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "effort"), effortSel))),
     h("div", { class: "actions" }, start, h("span", { class: "hint" }, "⌘↩ to run")));
+
+  let hi = -1, shown = [];
+  const known = (v) => (repoList || []).find(r => r.name.toLowerCase() === shortRepo(v).toLowerCase());
+  function choose(r) { repo.value = r.name; hi = -1; update(); branch.focus(); }
+  function update() {
+    const q = repo.value.trim().toLowerCase(), k = known(repo.value);
+    clear.hidden = !q;
+    branch.placeholder = k ? k.default_branch : "default";
+    branch.disabled = !q;
+    if (!q) branch.value = "";
+    start.textContent = q ? "run" : "run in blank box";
+    if (k || /^https?:|^git@/.test(q)) { picks.replaceChildren(); shown = []; return; }
+    if (repoList == null) { picks.replaceChildren(h("div", { class: "note" }, "loading repos…")); return; }
+    const used = [...new Set(threads.map(t => shortRepo(t.repo)).filter(Boolean))];
+    const score = (r) => { const n = r.name.toLowerCase(), base = n.split("/")[1];
+      return base.startsWith(q) ? 0 : n.startsWith(q) ? 1 : base.includes(q) ? 2 : n.includes(q) ? 3 : 9; };
+    shown = q ? repoList.map(r => [score(r), r]).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0]).map(([, r]) => r)
+      : [...used.map(n => repoList.find(r => r.name === n)).filter(Boolean), ...repoList.filter(r => !used.includes(r.name))];
+    shown = shown.slice(0, q ? 8 : 6);
+    hi = Math.min(hi, shown.length - 1);
+    picks.replaceChildren(
+      ...shown.map((r, i) => h("button", { type: "button", class: "pick" + (i === hi ? " hi" : ""), onmousedown: (e) => e.preventDefault(), onclick: () => choose(r) },
+        h("span", { class: "pn" }, r.name), r.private ? h("span", { class: "lock" }, "priv") : null,
+        h("span", { class: "pd" }, r.description || ""), h("span", { class: "pt" }, ago(r.pushed)))),
+      ...(repoNote ? [h("div", { class: "note" }, repoNote)] : !shown.length ? [h("div", { class: "note" }, "no match · paste a git url, or clear for a blank box")] : []));
+  }
+  repo.addEventListener("input", () => { hi = -1; update(); });
+  repo.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (shown.length) { hi = (hi + (e.key === "ArrowDown" ? 1 : shown.length - 1 + (hi < 0 ? 1 : 0))) % shown.length; update(); } }
+    else if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && hi >= 0 && shown[hi]) { e.preventDefault(); choose(shown[hi]); }
+  });
   prompt.addEventListener("input", () => autogrow(prompt));
   form.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); form.requestSubmit(); } });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!prompt.value.trim() || !repo.value.trim()) { (prompt.value.trim() ? repo : prompt).focus(); return; }
+    if (!prompt.value.trim()) { prompt.focus(); return; }
     start.disabled = true; start.textContent = "starting…";
     try {
-      store.set("rux.new", JSON.stringify({ repo: repo.value, branch: branch.value }));
-      const t = await api("POST", "/api/threads", { repo: repo.value, branch: branch.value, prompt: prompt.value });
+      if (!proj) store.set("rux.new", JSON.stringify({ repo: repo.value, branch: branch.value, model: modelSel.value, effort: effortSel.value }));
+      const t = await api("POST", "/api/threads", { repo: repo.value.trim(), branch: branch.value, prompt: prompt.value, model: modelSel.value, effort: effortSel.value });
       await loadList();
       location.hash = "#/t/" + encodeURIComponent(t.id);
-    } catch (err) { alert(err.message); start.disabled = false; start.textContent = "run"; }
+    } catch (err) { alert(err.message); start.disabled = false; update(); }
   });
   $("#main").replaceChildren(h("div", { class: "col" }, form));
   if (wide.matches || document.body.dataset.view === "new") prompt.focus();
-  const repos = [...new Set(threads.map(t => shortRepo(t.repo)))].slice(0, 6);
-  recent.replaceChildren(...repos.map(r => h("button", { type: "button", onclick: () => { repo.value = r; branch.focus(); } }, r)));
+  update();
+  if (repoList == null) loadRepos().then(() => form.isConnected && update());
+  else loadRepos(); // refresh quietly for next time
 }
 
+// ---------- project ----------
+// threadsPanel lists a project's open worker threads; it refreshes itself.
+function threadsPanel(pid) {
+  const body = h("div");
+  const el = h("div", { class: "tpanel" },
+    h("div", { class: "tpanel-h" }, h("b", {}, "open threads")), body);
+  let last = null;
+  function render() {
+    const ts = threads.filter(t => t.project === pid && t.kind !== "manager" && t.status !== "destroyed");
+    const key = ts.map(t => t.id + t.status + t.connected + t.updated + t.title).join("|");
+    if (key === last) return;
+    last = key;
+    body.replaceChildren(...(ts.length ? ts.map(t => h("a", { class: "prow", href: "#/t/" + encodeURIComponent(t.id) },
+      dot(t), h("span", { class: "pt1" }, t.title), h("span", { class: "pt2" }, `${statusText(t)} · ${ago(t.updated)}`)))
+      : [h("div", { class: "pnote" }, "none · ask the manager, or start one with + thread")]));
+  }
+  render();
+  const timer = setInterval(render, 2000);
+  return { el, stop: () => clearInterval(timer) };
+}
+
+async function showProject(pid) {
+  const hash = location.hash;
+  let p;
+  try { p = await api("GET", `/api/projects/${encodeURIComponent(pid)}`); }
+  catch (err) { $("#main").replaceChildren(h("div", { class: "col" }, h("div", { class: "empty" }, err.message))); return; }
+  if (location.hash !== hash) return;
+  if (p.manager) { showThread(p.manager, p); return; }
+
+  // No manager yet: the first message starts one.
+  $("#hdr").replaceChildren(h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), h("span", { class: "title" }, p.name),
+    h("a", { class: "btn", href: "#/new/p/" + encodeURIComponent(pid) }, "+ thread"),
+    h("a", { class: "icon-btn", href: "#/p/" + encodeURIComponent(pid) + "/settings", title: "defaults & notes" }, "⚙"));
+  const panel = threadsPanel(pid);
+  cleanup = () => panel.stop();
+  $("#main").replaceChildren(h("div", { class: "col" }, panel.el,
+    h("div", { class: "intro" },
+      h("div", {}, h("b", {}, "project manager")),
+      h("div", {}, "Talk to it about ", p.repo ? shortRepo(p.repo) : "this project", ". It reads the code in its own guest, starts worker threads for the actual work, reviews what they push and screenshot, and reports back here. It starts with your first message."))));
+  const input = h("textarea", { rows: 1, placeholder: "message the manager…" });
+  const btn = h("button", { class: "send", disabled: true }, "send");
+  input.addEventListener("input", () => { autogrow(input); btn.disabled = !input.value.trim(); });
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    btn.disabled = true; btn.textContent = "starting…";
+    try { await api("POST", `/api/projects/${encodeURIComponent(pid)}/manager`, { text }); await loadList(); if (location.hash === hash) route(); }
+    catch (err) { alert(err.message); btn.disabled = false; btn.textContent = "send"; }
+  }
+  btn.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && (finePointer || e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } });
+  $("#ftr-in").replaceChildren(h("div", { class: "composer" }, input, btn));
+  $("#ftr").hidden = false;
+  if (wide.matches) input.focus();
+}
+
+function showProjectSettings(pid) {
+  const titleEl = h("span", { class: "title" }, "defaults & notes");
+  $("#hdr").replaceChildren(h("a", { class: "back", href: "#/p/" + encodeURIComponent(pid), "aria-label": "Back" }, "‹"), titleEl);
+  const col = h("div", { class: "col" });
+  $("#main").replaceChildren(col);
+  const dBranch = h("input", { placeholder: "repo default", autocapitalize: "off", autocorrect: "off", spellcheck: "false" });
+  const dModel = h("select", { class: "sel" }), dEffort = h("select", { class: "sel" });
+  dModel.addEventListener("change", () => fillModels(dModel, dEffort, dModel.value, dEffort.value));
+  const notes = h("textarea", { class: "notes", placeholder: "conventions, how to build and test, what to avoid… every thread in this project (and its manager) gets these" });
+  notes.addEventListener("input", () => autogrow(notes));
+  const saved = h("span", { class: "saved" });
+  const save = h("button", { class: "start", type: "submit" }, "save");
+  const repoLine = h("div", { class: "repo-line" });
+  const form = h("form", { class: "new" },
+    repoLine,
+    h("h2", {}, "defaults for new threads"),
+    h("div", { class: "fields three" },
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "branch"), dBranch)),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "model"), dModel)),
+      h("div", {}, h("div", { class: "field" }, h("label", {}, "effort"), dEffort))),
+    h("h2", { style: "margin-top:28px" }, "notes"),
+    notes,
+    h("div", { class: "actions" }, save, saved));
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    save.disabled = true;
+    try {
+      await api("PATCH", `/api/projects/${encodeURIComponent(pid)}`, { branch: dBranch.value, model: dModel.value, effort: dEffort.value, notes: notes.value });
+      saved.textContent = "saved"; setTimeout(() => saved.textContent = "", 2000);
+      loadList();
+    } catch (err) { alert(err.message); }
+    save.disabled = false;
+  });
+  col.append(form);
+  (modelList ? Promise.resolve() : loadModels()).then(async () => {
+    try {
+      const p = await api("GET", `/api/projects/${encodeURIComponent(pid)}`);
+      titleEl.textContent = p.name + " · defaults & notes";
+      repoLine.textContent = p.repo || "blank workspaces · no repo";
+      dBranch.value = p.branch || "";
+      fillModels(dModel, dEffort, p.model || "", p.effort || "");
+      notes.value = p.notes || ""; autogrow(notes);
+    } catch (err) { col.replaceChildren(h("div", { class: "empty" }, err.message)); }
+  });
+}
+
+// ---------- image viewer ----------
+function openImage(src, name) {
+  const img = h("img", { src, alt: name || "" });
+  const box = h("div", { class: "lightbox" },
+    h("div", { class: "lb-bar" },
+      src.startsWith("data:") ? null : h("a", { href: src + (src.includes("?") ? "&" : "?") + "download", onclick: (e) => e.stopPropagation() }, "save"),
+      h("button", { onclick: () => close() }, "close")),
+    img);
+  // Tap the image to toggle actual size (scroll around); tap outside, or Esc, to close.
+  img.addEventListener("click", (e) => { e.stopPropagation(); box.classList.toggle("full"); });
+  box.addEventListener("click", () => close());
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  function close() { box.remove(); removeEventListener("keydown", onKey); }
+  addEventListener("keydown", onKey);
+  document.body.append(box);
+}
+const fmtSize = (n) => n >= 1 << 20 ? (n / (1 << 20)).toFixed(1) + " MB" : n >= 1024 ? Math.round(n / 1024) + " KB" : n + " B";
+
 // ---------- thread ----------
-function showThread(id) {
+// showThread shows a thread. With proj, it's that project's page: the
+// manager's conversation, under the project's open threads.
+function showThread(id, proj = null) {
   let meta = null, es = null, lastId = 0, closed = false, caughtUp = false;
   const main = $("#main");
   const tx = h("div", { class: "tx" });
   const working = h("div", { class: "working", hidden: true }, "working", h("span", { class: "cursor" }));
-  main.replaceChildren(h("div", { class: "col" }, tx, working));
+  const panel = proj ? threadsPanel(proj.id) : null;
+  main.replaceChildren(h("div", { class: "col" }, panel?.el, tx, working));
 
-  const titleEl = h("span", { class: "title" }, "");
+  const titleEl = h("span", { class: "title" }, proj ? proj.name : "");
   const statusHolder = h("span");
   const menu = h("div", { class: "menu" }, h("button", { class: "icon-btn", "aria-label": "More", onclick: (e) => { e.stopPropagation(); toggleMenu(); } }, "⋯"));
-  $("#hdr").replaceChildren(h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), titleEl, statusHolder, menu);
+  $("#hdr").replaceChildren(...[h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), titleEl, statusHolder,
+    proj ? h("a", { class: "btn", href: "#/new/p/" + encodeURIComponent(proj.id) }, "+ thread") : null, menu].filter(Boolean));
 
-  const input = h("textarea", { rows: 1, placeholder: "reply…" });
+  const input = h("textarea", { rows: 1, placeholder: proj ? "message the manager…" : "reply…" });
   const btn = h("button", { class: "send", onclick: () => btn.classList.contains("stop") ? interrupt() : send() }, "send");
   input.addEventListener("input", () => { autogrow(input); syncButton(); });
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && (finePointer || e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } });
-  $("#ftr-in").replaceChildren(h("div", { class: "composer" }, input, btn));
+  const modelSel = h("select", { class: "sel", "aria-label": "model" }), effortSel = h("select", { class: "sel", "aria-label": "effort" });
+  let shownSettings = null;
+  function syncSettings(force) {
+    const key = (meta?.model || "") + "|" + (meta?.effort || "");
+    if (!force && key === shownSettings) return;
+    shownSettings = key;
+    fillModels(modelSel, effortSel, meta?.model || "", meta?.effort || "");
+  }
+  async function saveSettings() {
+    fillModels(modelSel, effortSel, modelSel.value, effortSel.value); // effort list depends on the model
+    try { await api("POST", `/api/threads/${id}/settings`, { model: modelSel.value, effort: effortSel.value }); }
+    catch (err) { alert(err.message); syncSettings(true); }
+  }
+  modelSel.addEventListener("change", saveSettings);
+  effortSel.addEventListener("change", saveSettings);
+  if (modelList == null) loadModels().then(() => syncSettings(true));
+  $("#ftr-in").replaceChildren(
+    h("div", { class: "opts" }, h("label", {}, "model", modelSel), h("label", {}, "effort", effortSel)),
+    h("div", { class: "composer" }, input, btn));
   $("#ftr").hidden = false;
 
   function syncButton() {
@@ -357,10 +658,14 @@ function showThread(id) {
   }
   function setMeta(m) {
     meta = m;
-    titleEl.textContent = m.title;
+    if (!proj) {
+      titleEl.textContent = m.title;
+      if (m.project) $(".back", $("#hdr")).href = "#/p/" + encodeURIComponent(m.project);
+    }
     statusHolder.replaceChildren(h("span", { class: "status" }, dot(m), statusText(m)));
     working.hidden = m.status !== "running";
     syncButton();
+    syncSettings();
   }
   async function send() {
     const text = input.value.trim();
@@ -375,27 +680,38 @@ function showThread(id) {
     const pop = $(".menu-pop", menu);
     if (pop) { pop.remove(); return; }
     menu.append(h("div", { class: "menu-pop", onclick: (e) => e.stopPropagation() },
-      h("div", { class: "info" }, shortRepo(meta?.repo) + (meta?.branch ? "@" + meta.branch : "")),
-      meta?.guest ? h("div", { class: "info" }, meta.guest) : null,
-      h("button", { class: "danger", onclick: destroy }, "remove guest")));
+      h("div", { class: "info" }, meta?.repo ? shortRepo(meta.repo) + (meta.branch ? "@" + meta.branch : "") : "blank workspace"),
+      meta?.guest ? h("div", { class: "info" }, (proj ? "manager · " : "") + meta.guest) : null,
+      proj ? h("button", { onclick: () => { location.hash = "#/p/" + encodeURIComponent(proj.id) + "/settings"; } }, "defaults & notes") : null,
+      h("button", { class: "danger", onclick: destroy }, proj ? "restart manager" : "remove guest")));
   }
   const closeMenu = () => $(".menu-pop", menu)?.remove();
   document.addEventListener("click", closeMenu);
   async function destroy() {
     closeMenu();
-    if (!confirm("Remove this thread's guest? Its files are deleted.")) return;
-    try { await api("POST", `/api/threads/${id}/destroy`); } catch (err) { alert(err.message); }
+    if (!confirm(proj ? "Remove the manager's guest? The next message starts a fresh manager (this conversation isn't carried over)." : "Remove this thread's guest? Its files are deleted.")) return;
+    try { await api("POST", `/api/threads/${id}/destroy`); if (proj) { await loadList(); route(); } } catch (err) { alert(err.message); }
   }
 
   // --- rendering ---
   const tools = new Map();
-  let setup = null, stderr = null;
+  let setup = null, stderr = null, ws = null, curModel = "";
+  const uiBlocks = new Map(); // ui id -> { el, view, ask }
+  function uiAnswered(b, action, state) {
+    b.el.classList.add("answered");
+    if (state && typeof state === "object" && window.ruxUI) { // show what was picked
+      const v = ruxUI.render({ ...b.spec, state }, { locked: true, openImage });
+      b.view.replaceWith(v); b.view = v;
+    } else b.view.lock?.();
+    $(".ui-ans", b.el)?.remove();
+    $(".ui-head", b.el).append(h("span", { class: "ui-ans" }, "answered · " + action));
+  }
   const atBottom = () => main.scrollHeight - main.scrollTop - main.clientHeight < 80;
   function add(el) { const stick = !caughtUp || atBottom(); tx.append(el); if (stick) main.scrollTop = main.scrollHeight; }
   function step(name, arg, detail, sigil = "$") {
     const mark = h("span", { class: "mark" });
     const det = h("div", { class: "detail" }, ...(detail || []));
-    const nameEl = h("span", { class: "name" }, name), argEl = h("span", { class: "arg" }, arg || "");
+    const nameEl = h("span", { class: "name" }, name.replace(/^mcp__rux__/, "")), argEl = h("span", { class: "arg" }, arg || "");
     const el = h("div", { class: "step" },
       h("button", { onclick: () => el.classList.toggle("open") }, h("span", { class: "sigil" }, sigil), nameEl, argEl, mark), det);
     return { el, mark, det, nameEl, argEl };
@@ -408,23 +724,81 @@ function showThread(id) {
   }
   const setMark = (m, ok) => { m.className = "mark " + (ok ? "ok" : "err"); m.textContent = ok ? "ok" : "err"; };
   const argOf = (i) => !i || typeof i !== "object" ? "" :
-    (i.command || i.file_path || i.pattern || i.url || i.query || i.description || Object.values(i).find(v => typeof v === "string") || "");
+    (i.command || i.file_path || i.pattern || i.url || i.query || i.title || i.description || i.thread_id || Object.values(i).find(v => typeof v === "string") || "");
   const textOf = (c) => typeof c === "string" ? c : Array.isArray(c) ? c.map(p => p.type === "text" ? p.text : "[" + p.type + "]").join("\n") : JSON.stringify(c, null, 2);
   const clip = (s, n = 20000) => s.length > n ? s.slice(0, n) + `\n… ${s.length - n} more characters` : s;
 
   function render(ev) {
     switch (ev.type) {
       case "rux_setup":
+        if (ws && !ws.mark.textContent) { ws.line(ev.text); break; }
         if (!setup) { setup = logStep("guest", "#"); setup.argEl.textContent = "setting up…"; }
         setup.line(ev.text); break;
+      case "rux_preparing":
+        ws = logStep("workspace", "#"); ws.argEl.textContent = meta?.repo ? "cloning " + shortRepo(meta.repo) + "…" : "creating a blank repo…"; break;
+      case "rux_checkout":
+        if (ws) ws.argEl.textContent = [ev.branch, ev.dir].filter(Boolean).join("  ");
+        break;
+      case "rux_ui": {
+        const blk = { ask: !!ev.ask };
+        const view = window.ruxUI ? ruxUI.render(ev.spec, {
+          onAction: async (action, params, state) => {
+            if (blk.done) return;
+            try {
+              await api("POST", `/api/threads/${id}/ui/${encodeURIComponent(ev.ui)}/answer`, { action, params, state });
+              if (blk.ask) { blk.done = true; uiAnswered(blk, action, state); }
+            } catch (err) { alert(err.message); }
+          },
+          openImage,
+        }) : h("div", { class: "err-line" }, "UI renderer didn't load");
+        const el = h("div", { class: "ui-block" },
+          ev.title || ev.ask ? h("div", { class: "ui-head" }, h("b", {}, ev.title || "question"), ev.ask ? h("span", { class: "ui-badge warn" }, "needs you") : null) : null, view);
+        if (!$(".ui-head", el) ) el.prepend(h("div", { class: "ui-head", hidden: true }));
+        Object.assign(blk, { el, view, spec: ev.spec });
+        uiBlocks.set(ev.ui, blk);
+        add(el);
+        break;
+      }
+      case "rux_ui_answer": {
+        const b = uiBlocks.get(ev.ui);
+        if (b && b.ask) { b.done = true; $(".ui-badge.warn", b.el)?.remove(); uiAnswered(b, ev.action, ev.state); }
+        break;
+      }
+      case "rux_asset": {
+        if (ev.quiet) break;
+        const cap = h("div", { class: "cap" }, ev.caption || ev.name, h("a", { href: ev.url + "?download" }, fmtSize(ev.size || 0) + " ↓"));
+        let body;
+        if (ev.inline && ev.mime?.startsWith("image/")) {
+          body = h("img", { src: ev.url, alt: ev.caption || ev.name, loading: "lazy", onclick: () => openImage(ev.url, ev.name) });
+          body.addEventListener("load", () => { if (caughtUp && atBottom()) main.scrollTop = main.scrollHeight; });
+        } else if (ev.inline && ev.mime?.startsWith("video/")) body = h("video", { src: ev.url, controls: true, playsinline: true, preload: "metadata" });
+        else body = h("a", { class: "file", href: ev.url, target: "_blank", rel: "noopener" }, "▤ " + ev.name);
+        add(h("div", { class: "asset" }, cap, body));
+        break;
+      }
+      case "rux_settings":
+        add(h("div", { class: "done" }, "model → " + (ev.model || "default") + " · effort " + (ev.effort || "default")));
+        if (meta) { meta.model = ev.model; meta.effort = ev.effort; syncSettings(); }
+        break;
+      case "system": if (ev.subtype === "init" && ev.model) curModel = ev.model; break;
+      case "control_response": if (ev.response?.response?.model) curModel = ev.response.response.model; break;
+      case "rux_ready": if (ws && !ws.mark.textContent) setMark(ws.mark, true); break;
       case "rux_guest":
         if (setup && ev.name) setup.argEl.textContent = ev.name;
         break;
       case "rux_runner_connected":
         if (setup) { if (setup.argEl.textContent === "setting up…") setup.argEl.textContent = ev.hostname || "ready"; setMark(setup.mark, true); }
         break;
-      case "rux_error": add(h("div", { class: "err-line" }, ev.text)); if (setup && !setup.mark.textContent) setMark(setup.mark, false); break;
-      case "rux_user": add(h("div", { class: "user" }, ev.text)); break;
+      case "rux_error": add(h("div", { class: "err-line" }, ev.text));
+        for (const st of [ws, setup]) if (st && !st.mark.textContent) { setMark(st.mark, false); break; }
+        break;
+      case "rux_user":
+        if (ev.text.startsWith("[rux] ")) {
+          const m = ev.text.match(/^\[rux\] worker \S+ \("(.*?)"\)(?::| )(.*?)(?:\. Its last message|$)/m);
+          const s = step("worker", m ? `${m[1]} · ${m[2]}` : ev.text.slice(6, 120), [h("pre", {}, ev.text.slice(6))], "#");
+          s.el.classList.add("wake"); add(s.el);
+        } else add(h("div", { class: "user" }, ev.text));
+        break;
       case "rux_interrupt": add(h("div", { class: "done" }, "stopped")); break;
       case "rux_claude_start": stderr = null; break;
       case "rux_stderr": case "rux_stdout":
@@ -446,7 +820,14 @@ function showThread(id) {
           const s = p.type === "tool_result" && tools.get(p.tool_use_id);
           if (!s) continue;
           setMark(s.mark, !p.is_error);
-          s.det.append(h("pre", {}, clip(textOf(p.content))));
+          const parts = Array.isArray(p.content) ? p.content : [];
+          for (const c of parts) if (c.type === "image" && c.source?.type === "base64" && /^image\/(png|jpeg|gif|webp)$/.test(c.source.media_type || "")) {
+            const src = `data:${c.source.media_type};base64,${c.source.data}`;
+            s.det.append(h("img", { src, onclick: () => openImage(src) }));
+            s.el.classList.add("open"); // an image Claude looked at is worth showing
+          }
+          const text = textOf(parts.length ? parts.filter(c => c.type !== "image") : p.content);
+          if (text.trim()) s.det.append(h("pre", {}, clip(text)));
         }
         break;
       case "result": {
@@ -455,6 +836,7 @@ function showThread(id) {
         if (ev.duration_ms) bits.push(Math.round(ev.duration_ms / 1000) + "s");
         if (ev.num_turns) bits.push(ev.num_turns + (ev.num_turns === 1 ? " turn" : " turns"));
         if (ev.total_cost_usd) bits.push("~$" + ev.total_cost_usd.toFixed(2));
+        if (curModel) bits.push(shortModel(curModel));
         if (bits.length) add(h("div", { class: "done" }, bits.join(" · ")));
         break;
       }
@@ -479,7 +861,7 @@ function showThread(id) {
   if (wide.matches) input.focus();
   const onVis = () => { if (document.visibilityState === "visible") { refresh(); if (es && es.readyState === 2) connect(); } };
   document.addEventListener("visibilitychange", onVis);
-  cleanup = () => { closed = true; es?.close(); document.removeEventListener("click", closeMenu); document.removeEventListener("visibilitychange", onVis); };
+  cleanup = () => { closed = true; es?.close(); panel?.stop(); document.removeEventListener("click", closeMenu); document.removeEventListener("visibilitychange", onVis); };
 }
 
 
@@ -542,7 +924,7 @@ function renderMonitor(ov) {
     const memFrac = g.mem_limit ? g.mem_bytes / g.mem_limit : 0;
     return h(g.thread_id ? "a" : "div", { class: "node" + (g.streaming ? " on" : ""), href: g.thread_id ? "#/t/" + encodeURIComponent(g.thread_id) : null, "data-k": "g:" + g.name },
       h("div", { class: "n" }, h("span", { class: "dot " + state }), h("span", {}, g.thread_title || g.name), g.streaming ? h("span", { class: "tag" }, "streaming") : null),
-      h("div", { class: "s" }, `${g.name.replace(/^rv-/, "")} · ${g.managed ? statusText({ status: g.status, connected: g.connected }) : "not a rux thread"}`),
+      h("div", { class: "s" }, `${g.name.replace(/^rv-/, "")} · ${g.managed ? statusText({ status: g.status, connected: g.connected }) + (g.model ? " · " + g.model : "") : "not a rux thread"}`),
       h("div", { class: "s" }, `cpu ${g.cpu.toFixed(1)}% · mem ${fmtGB(g.mem_bytes)}/${fmtGB(g.mem_limit)} · ${g.procs} procs`),
       h("div", { class: "mbar" }, h("i", { style: `width:${(memFrac * 100).toFixed(1)}%` })));
   });

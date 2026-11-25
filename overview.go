@@ -36,6 +36,7 @@ type ovGuest struct {
 	Procs       int     `json:"procs"`
 	ThreadID    string  `json:"thread_id,omitempty"`
 	ThreadTitle string  `json:"thread_title,omitempty"`
+	Model       string  `json:"model,omitempty"`
 	Status      string  `json:"status,omitempty"`
 	Connected   bool    `json:"connected"`
 	Streaming   bool    `json:"streaming"` // runner sent an event in the last few seconds
@@ -168,7 +169,7 @@ func (s *server) buildOverview() overview {
 	}
 	wg.Add(3)
 	go func() { defer wg.Done(); ov.Host = s.hostInfo() }()
-	go func() { defer wg.Done(); runJSON(10*time.Second, &roxList, s.roxBin, "ls", "--json") }()
+	go func() { defer wg.Done(); runJSON(10*time.Second, &roxList, s.roxBin, "ls", "--all-projects", "--json") }()
 	go func() { defer wg.Done(); runJSON(5*time.Second, &ts, tailscaleBin(), "status", "--json") }()
 	wg.Wait()
 
@@ -284,6 +285,7 @@ func (s *server) buildOverview() overview {
 		if t := byGuest[g.Name]; t != nil {
 			v := t.view()
 			og.ThreadID, og.ThreadTitle, og.Status, og.Connected, og.Managed = v.ID, v.Title, v.Status, v.Connected, true
+			og.Model = v.Model
 			og.Streaming = streaming[v.ID]
 		}
 		seen[g.Name] = true

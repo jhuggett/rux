@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -29,6 +30,15 @@ type runner struct {
 	serverURL, thread, token string
 	dir, claudeBin, model    string
 	allowedTools, stateDir   string
+	repo, branch, effort     string
+	notes                    string // project notes, appended to claude's system prompt
+	project                  string // project name
+	role                     string // "" for a worker, "manager" for a project's manager
+	httpBase                 string // the server's runner listener, e.g. http://192.168.65.1:7701
+
+	ready  chan struct{} // closed once the workspace is cloned or created
+	userQ  chan string
+	gitEnv []string // extra environment for git and claude
 
 	mu        sync.Mutex
 	seq       int64
@@ -39,10 +49,13 @@ type runner struct {
 
 	sessionID string
 	started   atomic.Bool // claude has persisted the session, so use --resume
+	upgrading atomic.Bool
 
-	procMu sync.Mutex
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
+	procMu   sync.Mutex
+	cmd      *exec.Cmd
+	stdin    io.WriteCloser
+	done     chan struct{} // closed when cmd has exited
+	retiring *exec.Cmd     // cmd is finishing its turn and will exit (effort changed)
 }
 
 func runRunner(args []string) {
@@ -54,8 +67,12 @@ func runRunner(args []string) {
 	fs.StringVar(&r.dir, "dir", "", "working directory for claude (default $ROX_PROJECT_DIR, else cwd)")
 	fs.StringVar(&r.claudeBin, "claude", "claude", "claude binary")
 	fs.StringVar(&r.model, "model", "", "claude --model")
+	fs.StringVar(&r.effort, "effort", "", "claude --effort")
 	fs.StringVar(&r.allowedTools, "allowed-tools", defaultAllowedTools, "claude --allowedTools")
 	fs.StringVar(&r.stateDir, "state", "", "state directory (default ~/.rux/THREAD)")
+	fs.StringVar(&r.repo, "repo", "", "repository to clone into --dir (default: an empty git repo)")
+	fs.StringVar(&r.branch, "branch", "", "branch to clone (default: the remote's default)")
+	fs.StringVar(&r.role, "role", "", `"manager" to run a project's manager (rux MCP tools for its workers)`)
 	fs.Parse(args)
 	if r.serverURL == "" || r.thread == "" || r.token == "" {
 		log.Fatal("runner: --server, --thread and --token are required")
@@ -63,17 +80,30 @@ func runRunner(args []string) {
 	if r.dir == "" {
 		r.dir = os.Getenv("ROX_PROJECT_DIR")
 	}
+	home, _ := os.UserHomeDir()
 	if r.dir == "" {
-		r.dir, _ = os.Getwd()
+		name := "scratch"
+		if r.repo != "" {
+			name = projectName(r.repo)
+		}
+		r.dir = filepath.Join(home, "work", name)
 	}
 	if r.stateDir == "" {
-		home, _ := os.UserHomeDir()
 		r.stateDir = filepath.Join(home, ".rux", r.thread)
 	}
+	r.ready, r.userQ = make(chan struct{}), make(chan string, 64)
 	if err := r.load(); err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("runner: thread %s, dir %s, session %s, %d stored events", r.thread, r.dir, r.sessionID, r.seq)
+	r.setupGitEnv()
+	go r.prepare()
+	go func() { // messages wait for the workspace, then go to claude in order
+		<-r.ready
+		for text := range r.userQ {
+			r.sendUser(text)
+		}
+	}()
 
 	backoff := time.Second
 	for {
@@ -103,6 +133,12 @@ func (r *runner) load() error {
 	if r.sessionID == "" {
 		r.sessionID = newUUID()
 		r.saveSession()
+	}
+	if b, err := os.ReadFile(filepath.Join(r.stateDir, "settings.json")); err == nil {
+		var st struct{ Model, Effort, Notes, Project string }
+		if json.Unmarshal(b, &st) == nil {
+			r.model, r.effort, r.notes, r.project = st.Model, st.Effort, st.Notes, st.Project
+		}
 	}
 	f, err := os.OpenFile(filepath.Join(r.stateDir, "events.jsonl"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 	if err != nil {
@@ -162,7 +198,7 @@ func (r *runner) connectOnce(ctx context.Context) (bool, error) {
 	defer ccancel()
 	host, _ := os.Hostname()
 	if err := writeJSON(cctx, c, wireMsg{T: "hello", Info: map[string]string{
-		"hostname": host, "dir": r.dir, "session_id": r.sessionID,
+		"hostname": host, "dir": r.dir, "session_id": r.sessionID, "version": selfVersion(),
 	}}); err != nil {
 		return true, err
 	}
@@ -232,7 +268,11 @@ func (r *runner) connectOnce(ctx context.Context) (bool, error) {
 func (r *runner) handle(m wireMsg) {
 	switch m.T {
 	case "user":
-		r.sendUser(m.Text)
+		r.userQ <- m.Text
+	case "upgrade":
+		go r.upgrade()
+	case "settings":
+		r.applySettings(m.Info["model"], m.Info["effort"], m.Info["notes"], m.Info["project"])
 	case "interrupt":
 		r.procMu.Lock()
 		if r.cmd != nil && r.cmd.Process != nil {
@@ -246,6 +286,17 @@ func (r *runner) handle(m wireMsg) {
 func (r *runner) sendUser(text string) {
 	r.procMu.Lock()
 	defer r.procMu.Unlock()
+	for r.upgrading.Load() { // the runner is about to re-exec; this message would be lost
+		r.procMu.Unlock()
+		time.Sleep(time.Second)
+		r.procMu.Lock()
+	}
+	for r.cmd != nil && r.cmd == r.retiring { // wait for it to exit, then start afresh
+		done := r.done
+		r.procMu.Unlock()
+		<-done
+		r.procMu.Lock()
+	}
 	if r.cmd == nil {
 		if err := r.startClaude(); err != nil {
 			r.emit(ruxEv("rux_error", "text", "starting claude: "+err.Error()))
@@ -272,12 +323,30 @@ func (r *runner) startClaude() error {
 		// No approvals UI yet: anything not pre-allowed is denied instead of hanging.
 		"--permission-prompts", "none",
 	}
-	if r.allowedTools != "" {
-		args = append(args, "--allowedTools", r.allowedTools)
+	tools := r.allowedTools
+	if r.role == "manager" && r.httpBase != "" {
+		cfg, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"rux": map[string]any{
+			"type": "http", "url": r.httpBase + "/mcp", "headers": map[string]string{"Authorization": "Bearer " + r.token}}}})
+		args = append(args, "--mcp-config", string(cfg))
+		tools = strings.TrimSpace(tools + " mcp__rux")
+	}
+	if tools != "" {
+		args = append(args, "--allowedTools", tools)
 	}
 	if r.model != "" {
 		args = append(args, "--model", r.model)
 	}
+	if r.effort != "" {
+		args = append(args, "--effort", r.effort)
+	}
+	prompt := shareSystemPrompt
+	if r.role == "manager" {
+		prompt = strings.ReplaceAll(managerSystemPrompt, "PROJECT", cmpOr(r.project, "this project")) + "\n\n" + shareSystemPrompt
+	}
+	if strings.TrimSpace(r.notes) != "" {
+		prompt += "\n\nNotes from the user for every thread in this project:\n" + r.notes
+	}
+	args = append(args, "--append-system-prompt", prompt)
 	if r.started.Load() {
 		args = append(args, "--resume", r.sessionID)
 	} else {
@@ -285,6 +354,7 @@ func (r *runner) startClaude() error {
 	}
 	cmd := exec.Command(r.claudeBin, args...)
 	cmd.Dir = r.dir
+	cmd.Env = append(os.Environ(), r.gitEnv...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
@@ -300,8 +370,9 @@ func (r *runner) startClaude() error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	r.cmd, r.stdin = cmd, stdin
-	r.emit(ruxEv("rux_claude_start", "args", strings.Join(args, " "), "dir", r.dir))
+	done := make(chan struct{})
+	r.cmd, r.stdin, r.done = cmd, stdin, done
+	r.emit(ruxEv("rux_claude_start", "args", strings.ReplaceAll(strings.Join(args, " "), r.token, "…"), "dir", r.dir))
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -334,6 +405,7 @@ func (r *runner) startClaude() error {
 		if r.cmd == cmd {
 			r.cmd, r.stdin = nil, nil
 		}
+		close(done)
 		r.procMu.Unlock()
 		msg := ""
 		if err != nil {
@@ -356,4 +428,212 @@ func (r *runner) noteStarted(b []byte) {
 		r.started.Store(true)
 		r.saveSession()
 	}
+}
+
+// setupGitEnv points git (for the clone and for everything claude runs) at
+// `rux git-credential`, which fetches the host's GitHub token from the server
+// when git needs it. It's all environment, so nothing is written to the guest's
+// git config and the local backend doesn't touch the host's.
+func (r *runner) setupGitEnv() {
+	u, err := url.Parse(r.serverURL)
+	if err != nil {
+		return
+	}
+	u.Scheme = map[string]string{"wss": "https"}[u.Scheme]
+	if u.Scheme == "" {
+		u.Scheme = "http"
+	}
+	u.Path, u.RawQuery = "/git-credential", url.Values{"thread": {r.thread}}.Encode()
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	cfg := [][2]string{{"credential.https://github.com.helper", "!" + shQuote(exe) + " git-credential"}}
+	if c, err := fetchCredential(u.String(), r.token); err == nil {
+		cfg = append(cfg, [2]string{"user.name", c.Name}, [2]string{"user.email", c.Email})
+	} else {
+		r.emit(ruxEv("rux_setup", "text", "no GitHub access from the host: "+err.Error()))
+	}
+	cred := u.String()
+	r.httpBase = u.Scheme + "://" + u.Host
+	u.Path = "/assets"
+	assets := u.String()
+	u.Path = "/ui"
+	r.gitEnv = []string{"GIT_TERMINAL_PROMPT=0", "RUX_CRED_URL=" + cred, "RUX_ASSET_URL=" + assets, "RUX_UI_URL=" + u.String(), "RUX_CRED_TOKEN=" + r.token,
+		"PATH=" + r.binDir(exe) + string(os.PathListSeparator) + os.Getenv("PATH"),
+		fmt.Sprintf("GIT_CONFIG_COUNT=%d", len(cfg))}
+	for i, kv := range cfg {
+		r.gitEnv = append(r.gitEnv, fmt.Sprintf("GIT_CONFIG_KEY_%d=%s", i, kv[0]), fmt.Sprintf("GIT_CONFIG_VALUE_%d=%s", i, kv[1]))
+	}
+}
+
+// prepare clones the repo (or creates an empty one) the first time the runner
+// starts, then lets queued messages through.
+func (r *runner) prepare() {
+	defer close(r.ready)
+	marker := filepath.Join(r.stateDir, "prepared")
+	if _, err := os.Stat(marker); err == nil {
+		return
+	}
+	r.emit(ruxEv("rux_preparing"))
+	if _, err := os.Stat(filepath.Join(r.dir, ".git")); err != nil {
+		var err error
+		if r.repo != "" {
+			args := []string{"clone", "--progress"}
+			if r.branch != "" {
+				args = append(args, "--branch", r.branch)
+			}
+			err = r.git(filepath.Dir(r.dir), append(args, "--", r.repo, r.dir)...)
+		} else {
+			err = os.MkdirAll(r.dir, 0o755)
+			if err == nil {
+				err = r.git(r.dir, "init", "--quiet", "--initial-branch", "main")
+			}
+		}
+		if err != nil {
+			r.emit(ruxEv("rux_error", "text", "setting up the workspace: "+err.Error()))
+			os.MkdirAll(r.dir, 0o755) // let claude start anyway, so the thread is still usable
+			r.emit(ruxEv("rux_ready"))
+			return
+		}
+	}
+	out, _ := exec.Command("git", "-C", r.dir, "symbolic-ref", "--short", "HEAD").Output()
+	r.emit(ruxEv("rux_checkout", "branch", strings.TrimSpace(string(out)), "dir", r.dir))
+	os.WriteFile(marker, nil, 0o600)
+	r.emit(ruxEv("rux_ready"))
+}
+
+// git runs a git command, streaming its output into the thread.
+func (r *runner) git(dir string, args ...string) error {
+	os.MkdirAll(dir, 0o755)
+	r.emit(ruxEv("rux_setup", "text", "$ git "+strings.Join(args, " ")))
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), r.gitEnv...)
+	pr, pw := io.Pipe()
+	cmd.Stdout, cmd.Stderr = pw, pw
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		sc := bufio.NewScanner(pr)
+		sc.Split(scanLinesCR)
+		last := ""
+		for sc.Scan() {
+			line := strings.TrimSpace(sc.Text())
+			// Progress lines repeat with a new percentage; keep only the finished ones.
+			if line == "" || line == last || (strings.Contains(line, "%") && !strings.Contains(line, "done")) {
+				continue
+			}
+			last = line
+			r.emit(ruxEv("rux_setup", "text", line))
+		}
+		io.Copy(io.Discard, pr)
+	}()
+	err := cmd.Wait()
+	pw.Close()
+	<-done
+	return err
+}
+
+type gitCred struct {
+	Username, Password, Name, Email, Login string
+}
+
+func fetchCredential(u, token string) (*gitCred, error) {
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, fmt.Errorf("%s: %s", resp.Status, strings.TrimSpace(string(b)))
+	}
+	var c gitCred
+	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// runGitCredential implements git's credential helper protocol for "get":
+// https://git-scm.com/docs/gitcredentials#_custom_helpers
+func runGitCredential(args []string) {
+	if len(args) == 0 || args[0] != "get" {
+		return // store/erase: nothing to do
+	}
+	in, _ := io.ReadAll(io.LimitReader(os.Stdin, 64<<10))
+	host := ""
+	for _, line := range strings.Split(string(in), "\n") {
+		if v, ok := strings.CutPrefix(line, "host="); ok {
+			host = v
+		}
+	}
+	if host != "github.com" {
+		return
+	}
+	c, err := fetchCredential(os.Getenv("RUX_CRED_URL"), os.Getenv("RUX_CRED_TOKEN"))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "rux git-credential:", err)
+		return
+	}
+	fmt.Printf("username=%s\npassword=%s\n", c.Username, c.Password)
+}
+
+// applySettings changes the model and effort for this thread. A model change
+// goes to a running claude with the set_model control request. Effort has no
+// live switch, so claude finishes its turn and exits, and the next message
+// starts it again with --resume and the new effort.
+func (r *runner) applySettings(model, effort, notes, project string) {
+	r.procMu.Lock()
+	defer r.procMu.Unlock()
+	if model == r.model && effort == r.effort && notes == r.notes && project == r.project {
+		return
+	}
+	oldModel, oldEffort := r.model, r.effort
+	r.model, r.effort, r.notes, r.project = model, effort, notes, project
+	b, _ := json.Marshal(map[string]string{"model": model, "effort": effort, "notes": notes, "project": project})
+	os.WriteFile(filepath.Join(r.stateDir, "settings.json"), b, 0o600)
+	// New notes reach claude the next time it starts.
+	if r.cmd == nil || r.cmd == r.retiring || (model == oldModel && effort == oldEffort) {
+		return
+	}
+	if effort != oldEffort {
+		r.stdin.Close()
+		r.retiring = r.cmd
+		return
+	}
+	if model == "" {
+		model = "default"
+	}
+	req, _ := json.Marshal(map[string]any{"type": "control_request", "request_id": "rux-model-" + randHex(4),
+		"request": map[string]any{"subtype": "set_model", "model": model}})
+	if _, err := r.stdin.Write(append(req, '\n')); err != nil {
+		r.emit(ruxEv("rux_error", "text", "switching model: "+err.Error()))
+	}
+}
+
+// binDir returns a directory holding this binary as `rux`, for claude's PATH,
+// so `rux share` and `rux screenshot` work in the guest.
+func (r *runner) binDir(exe string) string {
+	if filepath.Base(exe) == "rux" {
+		return filepath.Dir(exe)
+	}
+	dir := filepath.Join(r.stateDir, "bin")
+	os.MkdirAll(dir, 0o755)
+	link := filepath.Join(dir, "rux")
+	if cur, err := os.Readlink(link); err != nil || cur != exe {
+		os.Remove(link)
+		os.Symlink(exe, link)
+	}
+	return dir
 }

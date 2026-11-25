@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,26 +33,35 @@ import (
 var webFS embed.FS
 
 type server struct {
-	dataDir   string
-	advertise string // host:port guests use to reach the runner listener
-	runnerBin string
-	roxBin    string
-	memory    string
-	backend   string // "rox" or "local" (no sandbox; for testing the app itself)
-	allowUser string
-	guestNets []*net.IPNet
-	selfBin   string
+	dataDir       string
+	advertise     string // host:port guests use to reach the runner listener
+	runnerBin     string
+	roxBin        string
+	memory        string
+	backend       string // "rox" or "local" (no sandbox; for testing the app itself)
+	allowUser     string
+	guestNets     []*net.IPNet
+	selfBin       string
+	runnerVersion string // hash of runnerBin; runners with another version get upgraded
+	gh            *github
+	models        *modelCache
 
-	mu      sync.Mutex
-	threads map[string]*thread
-	viewers viewers
+	mu       sync.Mutex
+	threads  map[string]*thread
+	projects map[string]*project
+	viewers  viewers
 }
 
 type threadMeta struct {
 	ID         string    `json:"id"`
 	Title      string    `json:"title"`
+	Project    string    `json:"project"`
+	Kind       string    `json:"kind,omitempty"`   // "" for a worker, "manager" for a project's manager
+	Parent     string    `json:"parent,omitempty"` // the manager thread that started this one
 	Repo       string    `json:"repo"`
 	Branch     string    `json:"branch"`
+	Model      string    `json:"model,omitempty"`  // claude --model; empty for the default
+	Effort     string    `json:"effort,omitempty"` // claude --effort; empty for the default
 	Prompt     string    `json:"prompt"`
 	Status     string    `json:"status"` // provisioning, starting, running, idle, failed, destroying, destroyed
 	Guest      string    `json:"guest"`
@@ -86,6 +96,10 @@ type thread struct {
 	subs   map[chan sseItem]struct{}
 	send   chan wireMsg // current runner connection; nil if none
 	cancel context.CancelFunc
+
+	upgradeTried bool     // runner upgrade attempted this server run
+	lastText     string   // the latest assistant text, for wake-ups and summaries
+	pendingWake  []string // wake-ups for this (manager) thread, sent when its runner connects
 }
 
 func runServe(args []string) {
@@ -103,6 +117,8 @@ func runServe(args []string) {
 	flags.StringVar(&s.memory, "memory", "4G", "guest memory")
 	flags.StringVar(&s.backend, "backend", "rox", `"rox", or "local" to run threads unsandboxed on this host (testing only)`)
 	flags.StringVar(&s.allowUser, "allow-user", "", "only allow this Tailscale login through `tailscale serve` (recommended)")
+	claudeBin := flags.String("claude", "claude", "claude binary on this host, used only to list the models Claude Code offers")
+	ghBin := flags.String("gh", "gh", "gh binary whose login gives guests GitHub access and lists repos; empty to turn off")
 	flags.Parse(args)
 
 	if s.advertise == "" || *cidrs == "" {
@@ -131,7 +147,20 @@ func runServe(args []string) {
 		}
 		s.guestNets = append(s.guestNets, n)
 	}
+	s.runnerVersion = fileVersion(s.runnerBin)
+	if s.backend == "local" {
+		s.runnerVersion = fileVersion(s.selfBin)
+	}
+	s.models = &modelCache{claudeBin: *claudeBin, dir: filepath.Join(s.dataDir, "tmp")}
+	go s.models.list()
+	s.gh = &github{bin: *ghBin}
+	if s.gh.enabled() {
+		go s.gh.listRepos() // warm the repo picker
+	}
 	if err := s.loadThreads(); err != nil {
+		log.Fatal(err)
+	}
+	if err := s.loadProjects(); err != nil {
 		log.Fatal(err)
 	}
 	if s.allowUser == "" {
@@ -148,11 +177,25 @@ func runServe(args []string) {
 	app.HandleFunc("POST /api/threads/{id}/messages", s.handleMessage)
 	app.HandleFunc("POST /api/threads/{id}/interrupt", s.handleInterrupt)
 	app.HandleFunc("POST /api/threads/{id}/destroy", s.handleDestroy)
+	app.HandleFunc("GET /api/repos", s.handleRepos)
+	app.HandleFunc("GET /api/projects", s.handleProjects)
+	app.HandleFunc("POST /api/projects", s.handleProjectCreate)
+	app.HandleFunc("GET /api/projects/{id}", s.handleProjectGet)
+	app.HandleFunc("PATCH /api/projects/{id}", s.handleProjectUpdate)
+	app.HandleFunc("POST /api/projects/{id}/manager", s.handleManagerMessage)
+	app.HandleFunc("POST /api/threads/{id}/ui/{ui}/answer", s.handleUIAnswer)
+	app.HandleFunc("GET /api/models", s.handleModels)
+	app.HandleFunc("POST /api/threads/{id}/settings", s.handleSettings)
+	app.HandleFunc("GET /api/threads/{id}/assets/{file}", s.handleAssetGet)
 	app.HandleFunc("GET /api/overview", s.handleOverview)
 	app.HandleFunc("GET /api/overview/stream", s.handleOverviewStream)
 
 	guest := http.NewServeMux()
 	guest.HandleFunc("GET /runner", s.handleRunner)
+	guest.HandleFunc("GET /git-credential", s.handleGitCredential)
+	guest.HandleFunc("POST /assets", s.handleAssetUpload)
+	guest.HandleFunc("/mcp", s.handleMCP)
+	guest.HandleFunc("POST /ui", s.handleUIPost)
 	guest.HandleFunc("GET /dl/rux-runner", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, s.runnerBin)
 	})
@@ -408,43 +451,135 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 	writeJSONResp(w, 200, t.view())
 }
 
-var ghShort = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+var (
+	ghShort = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	ghSSH   = regexp.MustCompile(`^(?:ssh://)?git@github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$`)
+)
+
+// normalizeRepo turns owner/name and GitHub SSH remotes into HTTPS URLs, which
+// the guest clones with the host's gh credentials. Guests get no SSH keys.
+func normalizeRepo(repo string) (string, error) {
+	if ghShort.MatchString(repo) {
+		return "https://github.com/" + strings.TrimSuffix(repo, ".git") + ".git", nil
+	}
+	if m := ghSSH.FindStringSubmatch(repo); m != nil {
+		return "https://github.com/" + m[1] + ".git", nil
+	}
+	u, err := url.Parse(repo)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+		strings.ContainsAny(repo, " \t\n'\"\\") {
+		return "", errors.New("use owner/name or an https:// git URL")
+	}
+	return repo, nil
+}
+
+// createReq describes a new thread. Kind is "" for a worker or "manager" for
+// a project's manager; Parent is the manager that started a worker.
+type createReq struct {
+	Project, Repo, Branch, Prompt, Model, Effort string
+	Kind, Parent                                 string
+	Title                                        string `json:"-"` // set by managers; otherwise the prompt's first line
+}
+
+type reqError struct {
+	code int
+	msg  string
+}
+
+func (e *reqError) Error() string { return e.msg }
+
+func errorCode(err error) int {
+	var re *reqError
+	if errors.As(err, &re) {
+		return re.code
+	}
+	return 500
+}
 
 func (s *server) handleCreate(w http.ResponseWriter, r *http.Request) {
-	var req struct{ Repo, Branch, Prompt string }
+	var req createReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpErr(w, 400, "bad JSON")
 		return
 	}
+	req.Kind, req.Parent = "", ""
+	t, err := s.createThread(req)
+	if err != nil {
+		httpErr(w, errorCode(err), err.Error())
+		return
+	}
+	writeJSONResp(w, 201, t.view())
+}
+
+func (s *server) createThread(req createReq) (*thread, error) {
 	req.Repo, req.Branch, req.Prompt = strings.TrimSpace(req.Repo), strings.TrimSpace(req.Branch), strings.TrimSpace(req.Prompt)
-	if req.Repo == "" || req.Prompt == "" {
-		httpErr(w, 400, "repo and prompt are required")
-		return
+	if req.Prompt == "" {
+		return nil, &reqError{400, "prompt is required"}
 	}
-	if ghShort.MatchString(req.Repo) {
-		req.Repo = "https://github.com/" + req.Repo + ".git"
+	// A project supplies the repo and the defaults; otherwise the repo picks
+	// (or creates) the project.
+	var proj project
+	if req.Project != "" {
+		s.mu.Lock()
+		p := s.projects[req.Project]
+		if p != nil {
+			proj = *p
+		}
+		s.mu.Unlock()
+		if p == nil {
+			return nil, &reqError{404, "no such project"}
+		}
+		if req.Repo == "" {
+			req.Repo = proj.Repo
+		}
+		if req.Repo == proj.Repo {
+			req.Branch = cmpOr(req.Branch, proj.Branch)
+		}
+		req.Model, req.Effort = cmpOr(req.Model, proj.Model), cmpOr(req.Effort, proj.Effort)
 	}
-	if strings.HasPrefix(req.Repo, "-") || strings.HasPrefix(req.Branch, "-") {
-		httpErr(w, 400, "invalid repo or branch")
-		return
+	var err error
+	if req.Model, req.Effort, err = validSettings(req.Model, req.Effort); err != nil {
+		return nil, &reqError{400, err.Error()}
 	}
+	if req.Repo != "" {
+		if req.Repo, err = normalizeRepo(req.Repo); err != nil {
+			return nil, &reqError{400, err.Error()}
+		}
+	} else {
+		req.Branch = ""
+	}
+	if strings.HasPrefix(req.Branch, "-") || strings.ContainsAny(req.Branch, " \t\n~^:?*[\\") {
+		return nil, &reqError{400, "invalid branch"}
+	}
+	s.mu.Lock()
+	if req.Project == "" || projectIDFor(req.Repo) != req.Project {
+		p := s.ensureProjectLocked(req.Repo)
+		req.Project, proj = p.ID, *p
+	}
+	s.mu.Unlock()
 	now := time.Now()
 	title := req.Prompt
 	if i := strings.IndexByte(title, '\n'); i >= 0 {
 		title = title[:i]
 	}
-	if len(title) > 80 {
-		title = title[:80] + "…"
+	if r := []rune(title); len(r) > 80 {
+		title = string(r[:80]) + "…"
+	}
+	if t := strings.TrimSpace(req.Title); t != "" {
+		title = clipText(strings.ReplaceAll(t, "\n", " "), 80)
+	}
+	if req.Kind == "manager" {
+		title = proj.Name + " · manager"
 	}
 	id := now.UTC().Format("20060102-150405") + "-" + randHex(3)
 	meta := threadMeta{
-		ID: id, Title: title, Repo: req.Repo, Branch: req.Branch, Prompt: req.Prompt,
+		ID: id, Title: title, Project: req.Project, Kind: req.Kind, Parent: req.Parent,
+		Repo: req.Repo, Branch: req.Branch, Prompt: req.Prompt, Model: req.Model, Effort: req.Effort,
 		Status: "provisioning", Backend: s.backend, Created: now, Updated: now, Token: randHex(24),
 	}
 	t, err := openThread(filepath.Join(s.threadsDir(), id), &meta)
 	if err != nil {
-		httpErr(w, 500, err.Error())
-		return
+		return nil, err
 	}
 	s.mu.Lock()
 	s.threads[id] = t
@@ -455,7 +590,7 @@ func (s *server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		go s.provisionRox(t)
 	}
-	writeJSONResp(w, 201, t.view())
+	return t, nil
 }
 
 func (s *server) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -563,6 +698,13 @@ func (s *server) handleDestroy(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 404, "no such thread")
 		return
 	}
+	s.destroyThread(t)
+	writeJSONResp(w, 202, map[string]bool{"ok": true})
+}
+
+// destroyThread removes a thread's guest in the background. The thread and
+// its transcript stay.
+func (s *server) destroyThread(t *thread) {
 	t.mu.Lock()
 	guest, backend := t.meta.Guest, t.meta.Backend
 	if t.cancel != nil {
@@ -589,7 +731,6 @@ func (s *server) handleDestroy(w http.ResponseWriter, r *http.Request) {
 		}
 		t.setStatus("destroyed")
 	}()
-	writeJSONResp(w, 202, map[string]bool{"ok": true})
 }
 
 // ---- runner connections ----
@@ -633,10 +774,15 @@ func (s *server) handleRunner(w http.ResponseWriter, r *http.Request) {
 	case "provisioning", "starting", "failed":
 		t.setStatusLocked("idle")
 	}
+	send <- s.settingsMsg(&t.meta) // the thread's settings win over whatever the runner last had
 	if !t.meta.PromptSent {
 		t.meta.PromptSent = true
 		send <- wireMsg{T: "user", Text: t.meta.Prompt}
 	}
+	for _, w := range t.pendingWake {
+		send <- wireMsg{T: "user", Text: w}
+	}
+	t.pendingWake = nil
 	t.saveMeta()
 	t.mu.Unlock()
 
@@ -653,6 +799,7 @@ func (s *server) handleRunner(w http.ResponseWriter, r *http.Request) {
 	if err := writeJSON(ctx, c, wireMsg{T: "sync", Have: have}); err != nil {
 		return
 	}
+	s.maybeUpgrade(t, hello.Info["version"])
 	go func() {
 		ping := time.NewTicker(30 * time.Second)
 		defer ping.Stop()
@@ -685,12 +832,17 @@ func (s *server) handleRunner(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		t.mu.Lock()
+		var parent, wake string
 		if m.Seq > t.rseq {
 			t.rseq = m.Seq
 			t.appendLocked("runner", m.Seq, m.Ev)
 			t.statusFromEventLocked(m.Ev)
+			parent, wake = t.meta.Parent, t.wakeTextLocked(m.Ev)
 		}
 		t.mu.Unlock()
+		if parent != "" && wake != "" {
+			s.wake(parent, wake)
+		}
 	}
 }
 
@@ -703,10 +855,26 @@ func (t *thread) statusFromEventLocked(ev json.RawMessage) {
 		return
 	}
 	switch e.Type {
+	case "rux_preparing":
+		t.setStatusLocked("starting")
+	case "rux_checkout":
+		var c struct{ Branch string }
+		if json.Unmarshal(ev, &c) == nil && c.Branch != "" && t.meta.Branch != c.Branch {
+			t.meta.Branch = c.Branch
+			t.saveMeta()
+		}
+	case "rux_ready":
+		if t.meta.Status == "starting" {
+			t.setStatusLocked("idle")
+		}
 	case "rux_user":
 		t.setStatusLocked("running")
 	case "result", "rux_exit":
 		t.setStatusLocked("idle")
+	case "assistant":
+		if txt := assistantText(ev); txt != "" {
+			t.lastText = txt
+		}
 	}
 }
 
@@ -735,33 +903,40 @@ func projectName(repo string) string {
 }
 
 func (s *server) runnerCommand(t *threadMeta, serverHost string) string {
+	extra := ""
+	if t.Repo != "" {
+		extra += " --repo " + shQuote(t.Repo)
+	}
+	if t.Branch != "" {
+		extra += " --branch " + shQuote(t.Branch)
+	}
+	if model := s.effectiveModel(t.Model); model != "" {
+		extra += " --model " + shQuote(model)
+	}
+	if t.Effort != "" {
+		extra += " --effort " + shQuote(t.Effort)
+	}
+	if t.Kind != "" {
+		extra += " --role " + shQuote(t.Kind)
+	}
 	return fmt.Sprintf(`set -e; mkdir -p "$HOME/.local/bin"; `+
 		`curl -fsSL http://%[1]s/dl/rux-runner -o "$HOME/.local/bin/rux-runner"; chmod +x "$HOME/.local/bin/rux-runner"; `+
-		`exec "$HOME/.local/bin/rux-runner" runner --server ws://%[1]s/runner --thread %[2]s --token %[3]s`,
-		serverHost, t.ID, t.Token)
+		`exec "$HOME/.local/bin/rux-runner" runner --server ws://%[1]s/runner --thread %[2]s --token %[3]s%[4]s`,
+		serverHost, t.ID, t.Token, extra)
 }
+
+func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
 func (s *server) provisionRox(t *thread) {
 	t.mu.Lock()
 	m := t.meta
 	t.mu.Unlock()
-	if m.Branch == "" {
-		b, err := defaultBranch(m.Repo)
-		if err != nil {
-			t.event(ruxEv("rux_error", "text", "couldn't find the default branch: "+err.Error()))
-			t.setStatus("failed")
-			return
-		}
-		m.Branch = b
-		t.mu.Lock()
-		t.meta.Branch = b
-		t.saveMeta()
-		t.mu.Unlock()
-		t.event(ruxEv("rux_setup", "text", "default branch: "+b))
-	}
 	before := s.roxNames()
-	args := []string{"up", "container", "--repo", m.Repo, "--project", projectName(m.Repo), "--no-tailscale", "--memory", s.memory}
-	args = append(args, "--branch", m.Branch, "--", "bash", "-lc", s.runnerCommand(&m, s.advertise))
+	// The runner clones the repo itself, with the host's gh credentials, so Rox
+	// starts an empty guest. --no-git-agent keeps Rox from forwarding the host's
+	// SSH keys into it.
+	args := []string{"up", "container", "--no-project", "--no-git-agent", "--no-tailscale", "--memory", s.memory,
+		"--", "bash", "-lc", s.runnerCommand(&m, s.advertise)}
 	err := s.runLogged(t, s.roxBin, args, func(line string) {
 		if name := guestNameRe.FindString(line); name != "" {
 			t.mu.Lock()
@@ -786,10 +961,14 @@ func (s *server) provisionRox(t *thread) {
 	t.appendLocked("rux", 0, ruxEv("rux_guest", "name", guest))
 	if err != nil {
 		t.appendLocked("rux", 0, ruxEv("rux_error", "text", "rox up failed: "+err.Error()))
+		parent := t.meta.Parent
 		if !connected {
 			t.setStatusLocked("failed")
 		}
 		t.mu.Unlock()
+		if parent != "" && !connected {
+			s.wake(parent, fmt.Sprintf("%sworker %s (%q) failed to start: rox up failed: %v", wakePrefix, m.ID, m.Title, err))
+		}
 		return
 	}
 	if !connected {
@@ -797,24 +976,6 @@ func (s *server) provisionRox(t *thread) {
 	}
 	t.mu.Unlock()
 	s.watchConnect(t)
-}
-
-// defaultBranch asks the remote for the branch its HEAD points at.
-func defaultBranch(repo string) (string, error) {
-	cmd := exec.Command("git", "ls-remote", "--symref", "--", repo, "HEAD")
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		if rest, ok := strings.CutPrefix(line, "ref: refs/heads/"); ok {
-			if b, _, ok := strings.Cut(rest, "\t"); ok {
-				return b, nil
-			}
-		}
-	}
-	return "", errors.New("remote didn't report a HEAD branch")
 }
 
 func (s *server) watchConnect(t *thread) {
@@ -880,7 +1041,7 @@ func scanLinesCR(data []byte, atEOF bool) (int, []byte, error) {
 
 func (s *server) roxNames() map[string]bool {
 	out := map[string]bool{}
-	b, err := exec.Command(s.roxBin, "ls", "--json").Output()
+	b, err := exec.Command(s.roxBin, "ls", "--all-projects", "--json").Output()
 	if err != nil {
 		return out
 	}
@@ -917,21 +1078,10 @@ func (s *server) provisionLocal(t *thread) {
 	m := t.meta
 	t.mu.Unlock()
 	work := filepath.Join(t.dir, "work")
-	args := []string{"clone", "--depth", "50"}
-	if m.Branch != "" {
-		args = append(args, "--branch", m.Branch)
-	}
-	args = append(args, "--", m.Repo, work)
-	if _, err := os.Stat(work); errors.Is(err, fs.ErrNotExist) {
-		if err := s.runLogged(t, "git", args, nil); err != nil {
-			t.event(ruxEv("rux_error", "text", "git clone failed: "+err.Error()))
-			t.setStatus("failed")
-			return
-		}
-	}
 	_, port, _ := net.SplitHostPort(s.advertise)
 	cmd := exec.Command(s.selfBin, "runner", "--server", "ws://127.0.0.1:"+port+"/runner",
-		"--thread", m.ID, "--token", m.Token, "--dir", work, "--state", filepath.Join(t.dir, "runner"))
+		"--thread", m.ID, "--token", m.Token, "--dir", work, "--state", filepath.Join(t.dir, "runner"),
+		"--repo", m.Repo, "--branch", m.Branch, "--model", s.effectiveModel(m.Model), "--effort", m.Effort, "--role", m.Kind)
 	logf, _ := os.Create(filepath.Join(t.dir, "runner.log"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	t.event(ruxEv("rux_setup", "text", "starting local runner (unsandboxed) in "+work))
