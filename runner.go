@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -37,7 +38,7 @@ type runner struct {
 	httpBase                 string // the server's runner listener, e.g. http://192.168.65.1:7701
 
 	ready  chan struct{} // closed once the workspace is cloned or created
-	userQ  chan string
+	userQ  chan wireMsg
 	gitEnv []string // extra environment for git and claude
 
 	mu        sync.Mutex
@@ -91,7 +92,7 @@ func runRunner(args []string) {
 	if r.stateDir == "" {
 		r.stateDir = filepath.Join(home, ".rux", r.thread)
 	}
-	r.ready, r.userQ = make(chan struct{}), make(chan string, 64)
+	r.ready, r.userQ = make(chan struct{}), make(chan wireMsg, 64)
 	if err := r.load(); err != nil {
 		log.Fatal(err)
 	}
@@ -100,8 +101,8 @@ func runRunner(args []string) {
 	go r.prepare()
 	go func() { // messages wait for the workspace, then go to claude in order
 		<-r.ready
-		for text := range r.userQ {
-			r.sendUser(text)
+		for m := range r.userQ {
+			r.sendUser(m.Text, m.Files...)
 		}
 	}()
 
@@ -268,7 +269,7 @@ func (r *runner) connectOnce(ctx context.Context) (bool, error) {
 func (r *runner) handle(m wireMsg) {
 	switch m.T {
 	case "user":
-		r.userQ <- m.Text
+		r.userQ <- m
 	case "upgrade":
 		go r.upgrade()
 	case "settings":
@@ -283,7 +284,7 @@ func (r *runner) handle(m wireMsg) {
 	}
 }
 
-func (r *runner) sendUser(text string) {
+func (r *runner) sendUser(text string, files ...attachment) {
 	r.procMu.Lock()
 	defer r.procMu.Unlock()
 	for r.upgrading.Load() { // the runner is about to re-exec; this message would be lost
@@ -303,12 +304,34 @@ func (r *runner) sendUser(text string) {
 			return
 		}
 	}
-	r.emit(ruxEv("rux_user", "text", text))
+	// Attached images go to claude as images, and into the guest as files
+	// in case the work needs them (a mockup to match, an icon to use).
+	var urls, paths []string
+	var content []any
+	if len(files) > 0 {
+		dir := filepath.Join(r.stateDir, "attachments")
+		os.MkdirAll(dir, 0o755)
+		for _, f := range files {
+			p := filepath.Join(dir, time.Now().Format("150405")+"-"+safeAssetName(f.Name))
+			if os.WriteFile(p, f.Data, 0o644) == nil {
+				paths = append(paths, p)
+			}
+			urls = append(urls, f.URL)
+			content = append(content, map[string]any{"type": "image", "source": map[string]any{
+				"type": "base64", "media_type": f.Mime, "data": base64.StdEncoding.EncodeToString(f.Data)}})
+		}
+	}
+	r.emit(ruxEv("rux_user", "text", text, "images", urls))
+	ctext := text
+	if len(paths) > 0 {
+		ctext = strings.TrimSpace(text + "\n\n(The user attached " + map[bool]string{true: "an image", false: "images"}[len(paths) == 1] + ", also saved as " + strings.Join(paths, ", ") + ".)")
+	}
+	content = append(content, map[string]any{"type": "text", "text": ctext})
 	b, _ := json.Marshal(map[string]any{
 		"type": "user",
 		"message": map[string]any{
 			"role":    "user",
-			"content": []any{map[string]any{"type": "text", "text": text}},
+			"content": content,
 		},
 	})
 	if _, err := r.stdin.Write(append(b, '\n')); err != nil {

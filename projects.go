@@ -16,24 +16,32 @@ import (
 // new threads and notes that every thread in it gets in its system prompt.
 // Blank threads belong to the "scratch" project.
 type project struct {
-	ID      string    `json:"id"`
-	Name    string    `json:"name"`
-	Repo    string    `json:"repo,omitempty"`
-	Branch  string    `json:"branch,omitempty"`
-	Model   string    `json:"model,omitempty"`
-	Effort  string    `json:"effort,omitempty"`
-	Notes   string    `json:"notes,omitempty"`
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Repo     string `json:"repo,omitempty"`
+	Branch   string `json:"branch,omitempty"`
+	Model    string `json:"model,omitempty"`
+	Effort   string `json:"effort,omitempty"`
+	Notes    string `json:"notes,omitempty"`
+	Archived bool   `json:"archived,omitempty"`
+	// Host tools turned on for the project, the ones that run without asking,
+	// and per-tool settings.
+	Tools        []string                     `json:"tools,omitempty"`
+	ToolsAllowed []string                     `json:"tools_allowed,omitempty"`
+	ToolSettings map[string]map[string]string `json:"tool_settings,omitempty"`
+	Created      time.Time                    `json:"created"`
+	Updated      time.Time                    `json:"updated"`
 }
 
 type projectView struct {
 	project
-	Threads       int       `json:"threads"`           // not removed
-	Active        int       `json:"active"`            // running, or being set up
-	Activity      time.Time `json:"activity"`          // latest thread update, or the project's own
-	Manager       string    `json:"manager,omitempty"` // the live manager thread's ID
-	ManagerStatus string    `json:"manager_status,omitempty"`
+	Threads         int       `json:"threads"`  // not removed
+	Active          int       `json:"active"`   // running, or being set up
+	Activity        time.Time `json:"activity"` // latest thread update, or the project's own
+	ArchivedThreads int       `json:"archived_threads"`
+	Manager         string    `json:"manager,omitempty"` // the live manager thread's ID
+	ManagerStatus   string    `json:"manager_status,omitempty"`
+	ManagerReplied  time.Time `json:"manager_replied,omitempty"`
 }
 
 const scratchID = "scratch"
@@ -156,12 +164,16 @@ func (s *server) projectViews() []projectView {
 	for _, t := range ts {
 		m := t.view()
 		v := views[m.Project]
+		if m.Archived && v != nil && m.Kind == "" {
+			v.ArchivedThreads++
+			continue
+		}
 		if v == nil || m.Status == "destroyed" || m.Status == "destroying" {
 			continue
 		}
 		if m.Kind == "manager" {
 			if v.Manager == "" {
-				v.Manager, v.ManagerStatus = m.ID, m.Status
+				v.Manager, v.ManagerStatus, v.ManagerReplied = m.ID, m.Status, m.Replied
 				if !m.Connected && (m.Status == "idle" || m.Status == "running") {
 					v.ManagerStatus = "offline"
 				}
@@ -226,6 +238,9 @@ func (s *server) handleProjectCreate(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name, Branch, Model, Effort, Notes *string
+		Tools                              *[]string
+		ToolsAllowed                       *[]string                    `json:"tools_allowed"`
+		ToolSettings                       map[string]map[string]string `json:"tool_settings"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpErr(w, 400, "bad JSON")
@@ -267,6 +282,15 @@ func (s *server) handleProjectUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		next.Notes = *req.Notes
+	}
+	if req.Tools != nil {
+		next.Tools = *req.Tools
+	}
+	if req.ToolsAllowed != nil {
+		next.ToolsAllowed = *req.ToolsAllowed
+	}
+	if req.ToolSettings != nil {
+		next.ToolSettings = req.ToolSettings
 	}
 	if strings.HasPrefix(next.Branch, "-") || strings.ContainsAny(next.Branch, " \t\n~^:?*[\\") {
 		s.mu.Unlock()

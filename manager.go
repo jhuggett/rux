@@ -318,7 +318,7 @@ func (s *server) callManagerTool(mgr *thread, name string, raw json.RawMessage) 
 				last = t.lastAssistantTextLocked()
 			}
 			t.mu.Unlock()
-			if m.Status == "destroyed" && !a.IncludeRemoved {
+			if (m.Status == "destroyed" || m.Archived) && !a.IncludeRemoved {
 				continue
 			}
 			status := m.Status

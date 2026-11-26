@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -45,6 +46,7 @@ type server struct {
 	runnerVersion string // hash of runnerBin; runners with another version get upgraded
 	gh            *github
 	models        *modelCache
+	tools         *toolHost
 
 	mu       sync.Mutex
 	threads  map[string]*thread
@@ -58,6 +60,8 @@ type threadMeta struct {
 	Project    string    `json:"project"`
 	Kind       string    `json:"kind,omitempty"`   // "" for a worker, "manager" for a project's manager
 	Parent     string    `json:"parent,omitempty"` // the manager thread that started this one
+	Archived   bool      `json:"archived,omitempty"`
+	Replied    time.Time `json:"replied,omitempty"` // when claude last finished a turn
 	Repo       string    `json:"repo"`
 	Branch     string    `json:"branch"`
 	Model      string    `json:"model,omitempty"`  // claude --model; empty for the default
@@ -154,6 +158,7 @@ func runServe(args []string) {
 	s.models = &modelCache{claudeBin: *claudeBin, dir: filepath.Join(s.dataDir, "tmp")}
 	go s.models.list()
 	s.gh = &github{bin: *ghBin}
+	s.tools = newToolHost(s.dataDir)
 	if s.gh.enabled() {
 		go s.gh.listRepos() // warm the repo picker
 	}
@@ -174,9 +179,14 @@ func runServe(args []string) {
 	app.HandleFunc("POST /api/threads", s.handleCreate)
 	app.HandleFunc("GET /api/threads/{id}", s.handleGet)
 	app.HandleFunc("GET /api/threads/{id}/events", s.handleEvents)
+	app.HandleFunc("GET /api/threads/{id}/events/page", s.handleEventsPage)
 	app.HandleFunc("POST /api/threads/{id}/messages", s.handleMessage)
 	app.HandleFunc("POST /api/threads/{id}/interrupt", s.handleInterrupt)
 	app.HandleFunc("POST /api/threads/{id}/destroy", s.handleDestroy)
+	app.HandleFunc("POST /api/threads/{id}/archive", s.handleThreadArchive)
+	app.HandleFunc("DELETE /api/threads/{id}", s.handleThreadDelete)
+	app.HandleFunc("POST /api/projects/{id}/cleanup", s.handleProjectCleanup)
+	app.HandleFunc("POST /api/projects/{id}/archive", s.handleProjectArchive)
 	app.HandleFunc("GET /api/repos", s.handleRepos)
 	app.HandleFunc("GET /api/projects", s.handleProjects)
 	app.HandleFunc("POST /api/projects", s.handleProjectCreate)
@@ -185,6 +195,7 @@ func runServe(args []string) {
 	app.HandleFunc("POST /api/projects/{id}/manager", s.handleManagerMessage)
 	app.HandleFunc("POST /api/threads/{id}/ui/{ui}/answer", s.handleUIAnswer)
 	app.HandleFunc("GET /api/models", s.handleModels)
+	app.HandleFunc("GET /api/tools", s.handleToolsList)
 	app.HandleFunc("POST /api/threads/{id}/settings", s.handleSettings)
 	app.HandleFunc("GET /api/threads/{id}/assets/{file}", s.handleAssetGet)
 	app.HandleFunc("GET /api/overview", s.handleOverview)
@@ -196,6 +207,9 @@ func runServe(args []string) {
 	guest.HandleFunc("POST /assets", s.handleAssetUpload)
 	guest.HandleFunc("/mcp", s.handleMCP)
 	guest.HandleFunc("POST /ui", s.handleUIPost)
+	guest.HandleFunc("GET /tools", s.handleGuestTools)
+	guest.HandleFunc("POST /tools/run", s.handleGuestToolRun)
+	guest.HandleFunc("GET /tools/runs/{run}", s.handleGuestToolStatus)
 	guest.HandleFunc("GET /dl/rux-runner", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, s.runnerBin)
 	})
@@ -593,6 +607,49 @@ func (s *server) createThread(req createReq) (*thread, error) {
 	return t, nil
 }
 
+// handleEventsPage is GET /api/threads/{id}/events/page?before=ID&min=N&from=ID:
+// stored events before ID (default: all), at least N of them (default 200)
+// and reaching back to ID from if given, starting at a user message so turns
+// come whole. The app loads a thread's latest page, then earlier ones as you
+// scroll up.
+func (s *server) handleEventsPage(w http.ResponseWriter, r *http.Request) {
+	t := s.get(r.PathValue("id"))
+	if t == nil {
+		httpErr(w, 404, "no such thread")
+		return
+	}
+	q := r.URL.Query()
+	t.mu.Lock()
+	n := int64(len(t.events))
+	before := n + 1
+	if v, err := strconv.ParseInt(q.Get("before"), 10, 64); err == nil && v > 0 && v <= n+1 {
+		before = v
+	}
+	want := int64(200)
+	if v, err := strconv.ParseInt(q.Get("min"), 10, 64); err == nil && v > 0 {
+		want = min(v, 5000)
+	}
+	start := max(before-want, 1) // first id in the page
+	if v, err := strconv.ParseInt(q.Get("from"), 10, 64); err == nil && v > 0 && v < start {
+		start = max(v, before-3000) // to the first unseen event, within reason
+	}
+	// Back up to the start of a turn (a user message), but not forever.
+	for limit := start - 2000; start > 1 && start > limit; start-- {
+		var se struct {
+			Ev struct{ Type string } `json:"ev"`
+		}
+		if json.Unmarshal(t.events[start-1], &se) == nil && se.Ev.Type == "rux_user" {
+			break
+		}
+	}
+	page := make([]json.RawMessage, 0, before-start)
+	for id := start; id < before; id++ {
+		page = append(page, t.events[id-1])
+	}
+	t.mu.Unlock()
+	writeJSONResp(w, 200, map[string]any{"start": start, "events": page})
+}
+
 func (s *server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	t := s.get(r.PathValue("id"))
 	if t == nil {
@@ -680,12 +737,56 @@ func (s *server) sendToRunner(w http.ResponseWriter, r *http.Request, m wireMsg)
 }
 
 func (s *server) handleMessage(w http.ResponseWriter, r *http.Request) {
-	var req struct{ Text string }
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Text) == "" {
+	var req struct {
+		Text   string
+		Images []struct{ Name, Mime, Data string }
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<20)).Decode(&req); err != nil {
+		httpErr(w, 400, "bad JSON (or the images are over 64 MB together)")
+		return
+	}
+	if strings.TrimSpace(req.Text) == "" && len(req.Images) == 0 {
 		httpErr(w, 400, "text is required")
 		return
 	}
-	s.sendToRunner(w, r, wireMsg{T: "user", Text: req.Text})
+	t := s.get(r.PathValue("id"))
+	if t == nil {
+		httpErr(w, 404, "no such thread")
+		return
+	}
+	if len(req.Images) > 10 {
+		httpErr(w, 400, "at most 10 images per message")
+		return
+	}
+	m := wireMsg{T: "user", Text: req.Text}
+	for _, im := range req.Images {
+		switch im.Mime {
+		case "image/png", "image/jpeg", "image/gif", "image/webp":
+		default:
+			httpErr(w, 400, "images must be PNG, JPEG, GIF or WebP")
+			return
+		}
+		data, err := base64.StdEncoding.DecodeString(im.Data)
+		if err != nil || len(data) == 0 {
+			httpErr(w, 400, "bad image data")
+			return
+		}
+		if len(data) > 5<<20 {
+			httpErr(w, 400, "each image must be under 5 MB")
+			return
+		}
+		name := safeAssetName(cmpOr(im.Name, "image"))
+		if ext := map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp"}[im.Mime]; !strings.HasSuffix(strings.ToLower(name), ext) {
+			name = strings.TrimSuffix(name, filepath.Ext(name)) + ext
+		}
+		u, err := s.storeAssetBytes(t, data, name)
+		if err != nil {
+			httpErr(w, 500, err.Error())
+			return
+		}
+		m.Files = append(m.Files, attachment{Name: name, Mime: im.Mime, Data: data, URL: u})
+	}
+	s.sendToRunner(w, r, m)
 }
 
 func (s *server) handleInterrupt(w http.ResponseWriter, r *http.Request) {
@@ -870,6 +971,10 @@ func (t *thread) statusFromEventLocked(ev json.RawMessage) {
 	case "rux_user":
 		t.setStatusLocked("running")
 	case "result", "rux_exit":
+		if e.Type == "result" {
+			t.meta.Replied = time.Now()
+			t.saveMeta()
+		}
 		t.setStatusLocked("idle")
 	case "assistant":
 		if txt := assistantText(ev); txt != "" {

@@ -207,6 +207,11 @@ func (s *server) handleUIAnswer(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 404, "no such UI in this thread")
 		return
 	}
+	if s.answerApproval(ui, req.Action) {
+		t.appendLocked("rux", 0, ruxEv("rux_ui_answer", "ui", ui, "action", req.Action))
+		writeJSONResp(w, 202, map[string]bool{"ok": true})
+		return
+	}
 	if t.send == nil {
 		httpErr(w, 409, "the thread's runner isn't connected")
 		return

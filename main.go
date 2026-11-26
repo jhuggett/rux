@@ -30,6 +30,10 @@ func main() {
 		runUI(os.Args[2:])
 	case "diff":
 		runDiff(os.Args[2:])
+	case "action", "tool":
+		runTool(os.Args[2:])
+	case "sandbox":
+		runSandbox(os.Args[2:])
 	default:
 		usage()
 	}

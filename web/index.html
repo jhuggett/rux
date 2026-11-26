@@ -86,6 +86,15 @@ aside { background: var(--panel); }
 .proj .pcount { flex: none; font-size: 11px; color: var(--faint); }
 .proj .pcount.on { color: var(--green); }
 .row.in-proj { padding-left: 26px; }
+.proj.archive-link { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.proj.archive-link .pname::before { content: "▤ "; }
+.arow { display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 4px; }
+.arow:hover { background: var(--raise); }
+.arow .pt1 { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arow .pt2 { flex: none; font-size: 12px; color: var(--muted); }
+.arow button { flex: none; font-size: 12px; color: var(--muted); }
+.arow button:hover { color: var(--green); }
+.arow button.danger:hover { color: var(--err); }
 .row.gone { opacity: .45; }
 /* project page */
 .tpanel { margin: 16px 0 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 6px; }
@@ -159,8 +168,26 @@ select.sel:disabled { color: var(--faint); cursor: default; }
 
 /* transcript */
 .tx { padding: 20px 0 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.user { color: var(--green); white-space: pre-wrap; overflow-wrap: anywhere; display: flex; gap: 10px; padding: 8px 0 2px; }
-.user::before { content: "›"; text-shadow: var(--glow); flex: none; }
+.turn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 14px; }
+.user { color: #dde6dd; white-space: pre-wrap; overflow-wrap: anywhere; display: flex; gap: 10px; padding: 8px 12px; background: var(--raise); border-radius: 5px; }
+.user::before { content: "›"; color: var(--green); flex: none; }
+.work { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.work:empty { display: none; }
+.work.folded > :not(.fold) { display: none; }
+.work:not(.folded) > .fold { display: none; }
+.fold { justify-self: start; font-size: 12.5px; color: var(--muted); }
+.fold:hover { color: var(--green); }
+.fold::before { content: "▸ "; color: var(--faint); }
+.work.opened > .fold { display: block; } .work.opened > .fold::before { content: "▾ "; }
+/* unseen: things Claude said since you last looked; the marker fades once seen */
+.nw { position: relative; }
+.nw::before { content: ""; position: absolute; left: -10px; top: 2px; bottom: 2px; width: 2px; border-radius: 1px; background: var(--green); box-shadow: var(--glow); transition: opacity 1s; }
+.nw.nw-out::before { opacity: 0; }
+.newreply { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 10px); background: var(--raise); color: var(--green); border: 1px solid var(--green-dim); font-size: 12.5px; padding: 4px 14px; border-radius: 14px; z-index: 3; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+footer { position: relative; }
+.row.unread .row-title { color: #fff; font-weight: 700; }
+.row.unread .row-title::after, .proj.unread .pname::after { content: " ●"; color: var(--green); text-shadow: var(--glow); font-size: 10px; vertical-align: 2px; }
+.proj.unread .pname { color: var(--text); }
 .text { overflow-wrap: anywhere; }
 .text p + p, .text p + pre, .text pre + p { margin-top: 10px; }
 .text strong { color: #e4ede4; }
@@ -178,6 +205,18 @@ pre { font: 12.5px/1.55 var(--mono); background: var(--panel); border: 1px solid
 .step .detail pre { max-height: 50vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
 .step:not(.open) .detail { display: none; }
 .err-line { color: var(--err); font-size: 13px; }
+.tool-run { border: 1px solid var(--line); border-radius: 5px; padding: 6px 10px; background: var(--panel); }
+.tool-run .sum { margin: 4px 0 2px 16px; color: var(--text); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-run .mark.run { color: var(--warn, #d9b45a); }
+.tools-set { display: grid; gap: 10px; margin-top: 4px; }
+.tool-item { border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; display: grid; gap: 6px; }
+.tool-item .tn { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tool-item .tn b { font-weight: 500; color: var(--text); }
+.tool-item .td { color: var(--muted); font-size: 13px; }
+.tool-item .tw { color: var(--err); font-size: 12px; }
+.tool-item label.ck { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); white-space: nowrap; flex: none; }
+.tool-item label.ck input { flex: none; width: auto; margin: 0; accent-color: var(--green); }
+.tool-item .tn { justify-content: space-between; }
 .err-line::before { content: "! "; }
 .done { color: var(--faint); font-size: 12px; }
 .done::before { content: "— "; }
@@ -203,6 +242,19 @@ pre { font: 12.5px/1.55 var(--mono); background: var(--panel); border: 1px solid
 /* composer */
 footer { flex: none; padding: 10px 0 calc(env(safe-area-inset-bottom) + 12px); border-top: 1px solid var(--line); background: var(--bg); }
 .composer { display: flex; align-items: flex-end; gap: 10px; }
+.attach-btn { flex: none; color: var(--muted); font-size: 17px; padding: 4px 2px; line-height: 1; }
+.attach-btn:hover { color: var(--green); }
+.attach-strip { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0 8px 18px; }
+.attach-strip .th { position: relative; }
+.attach-strip img { height: 56px; max-width: 120px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); display: block; }
+.attach-strip .th button { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--text); font-size: 12px; line-height: 1; }
+.attach-strip .busy { color: var(--muted); font-size: 12px; align-self: center; }
+.user .imgs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.user .imgs img { max-height: 160px; max-width: 100%; border-radius: 4px; border: 1px solid var(--line); cursor: zoom-in; }
+.older { display: contents; }
+#main { overflow-anchor: none; } /* loadOlder keeps the scroll position itself */
+.earlier { justify-self: center; color: var(--faint); font-size: 12px; padding: 4px 10px; }
+.dropping #main { outline: 2px dashed var(--green-dim); outline-offset: -8px; }
 .composer::before { content: "›"; color: var(--green); text-shadow: var(--glow); padding: 6px 0; }
 .composer textarea { max-height: 40vh; padding: 6px 0; line-height: 1.5; overflow-y: hidden; }
 .send { flex: none; color: var(--green); border: 1px solid var(--green-dim); border-radius: 4px; padding: 4px 12px; font-size: 13px; }
@@ -329,7 +381,11 @@ const wide = matchMedia("(min-width: 900px)");
 
 // ---------- sidebar list (always live) ----------
 let threads = [], projects = [], currentId = null, currentProject = null;
-const threadRow = (t, cls = "") => h("a", { class: "row " + cls + (t.id === currentId ? " sel" : "") + (t.status === "destroyed" ? " gone" : ""), href: "#/t/" + encodeURIComponent(t.id) },
+// Unread: a thread replied (finished a turn) after you last looked at it.
+const seen = (() => { try { return JSON.parse(store.get("rux.seen") || "{}"); } catch { return {}; } })();
+function markSeen(id, replied) { if (!id || !replied) return; if (seen[id] !== replied) { seen[id] = replied; store.set("rux.seen", JSON.stringify(seen)); } }
+const isUnread = (id, replied) => !!replied && id !== currentId && seen[id] != null && new Date(replied) > new Date(seen[id]);
+const threadRow = (t, cls = "") => h("a", { class: "row " + cls + (t.id === currentId ? " sel" : "") + (t.status === "destroyed" ? " gone" : "") + (isUnread(t.id, t.replied) ? " unread" : ""), href: "#/t/" + encodeURIComponent(t.id) },
   dot(t),
   h("div", { class: "row-main" },
     h("div", { class: "row-title" }, t.title),
@@ -339,14 +395,17 @@ function renderList() {
   if (!projects.length && !threads.length) { list.replaceChildren(h("div", { class: "empty" }, "no threads yet")); return; }
   const out = [];
   for (const p of projects) {
-    const ts = threads.filter(t => t.project === p.id && t.status !== "destroyed" && t.kind !== "manager");
+    if (p.archived) continue;
+    const ts = threads.filter(t => t.project === p.id && t.status !== "destroyed" && t.kind !== "manager" && !t.archived);
     if (!ts.length && !p.manager && p.id === "scratch") continue;
-    out.push(h("a", { class: "proj" + (p.id === currentProject ? " sel" : ""), href: "#/p/" + encodeURIComponent(p.id) },
+    out.push(h("a", { class: "proj" + (p.id === currentProject ? " sel" : "") + (p.manager && p.id !== currentProject && isUnread(p.manager, p.manager_replied) ? " unread" : ""), href: "#/p/" + encodeURIComponent(p.id) },
       h("span", { class: "pname" }, p.name),
       p.active ? h("span", { class: "pcount on" }, p.active + " active") : p.manager_status === "running" ? h("span", { class: "pcount on" }, "manager working")
         : ts.length ? h("span", { class: "pcount" }, ts.length) : null));
     out.push(...ts.map(t => threadRow(t, "in-proj")));
   }
+  const archived = threads.filter(t => t.archived && t.kind !== "manager").length + projects.filter(p => p.archived).length;
+  if (archived) out.push(h("a", { class: "proj archive-link" + (location.hash === "#/archive" ? " sel" : ""), href: "#/archive" }, h("span", { class: "pname" }, "archive"), h("span", { class: "pcount" }, archived)));
   list.replaceChildren(...out);
 }
 async function loadList() {
@@ -380,6 +439,7 @@ function route() {
   else if (pm && pm[2]) { document.body.dataset.view = "project"; showProjectSettings(currentProject); }
   else if (pm) { document.body.dataset.view = "project"; showProject(currentProject); }
   else if (nm) { document.body.dataset.view = "new"; showNew(decodeURIComponent(nm[1])); }
+  else if (location.hash === "#/archive") { document.body.dataset.view = "project"; showArchive(); }
   else if (location.hash === "#/new") { document.body.dataset.view = "new"; showNew(); }
   else { document.body.dataset.view = "home"; showNew(); } // wide screens show the new-thread form beside the list
 }
@@ -493,10 +553,13 @@ function showNew(pid) {
 function threadsPanel(pid) {
   const body = h("div");
   const el = h("div", { class: "tpanel" },
-    h("div", { class: "tpanel-h" }, h("b", {}, "open threads")), body);
+    h("div", { class: "tpanel-h" }, h("b", {}, "open threads"),
+      h("button", { class: "ui-mini", title: "archive removed, failed and long-idle threads", onclick: async () => {
+        try { const r = await api("POST", `/api/projects/${encodeURIComponent(pid)}/cleanup`); await loadList(); render(); if (!r.archived) alert("Nothing to clean up: no removed, failed or long-idle threads."); } catch (err) { alert(err.message); }
+      } }, "clean up")), body);
   let last = null;
   function render() {
-    const ts = threads.filter(t => t.project === pid && t.kind !== "manager" && t.status !== "destroyed");
+    const ts = threads.filter(t => t.project === pid && t.kind !== "manager" && t.status !== "destroyed" && !t.archived);
     const key = ts.map(t => t.id + t.status + t.connected + t.updated + t.title).join("|");
     if (key === last) return;
     last = key;
@@ -520,7 +583,7 @@ async function showProject(pid) {
   // No manager yet: the first message starts one.
   $("#hdr").replaceChildren(h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), h("span", { class: "title" }, p.name),
     h("a", { class: "btn", href: "#/new/p/" + encodeURIComponent(pid) }, "+ thread"),
-    h("a", { class: "icon-btn", href: "#/p/" + encodeURIComponent(pid) + "/settings", title: "defaults & notes" }, "⚙"));
+    h("a", { class: "icon-btn", href: "#/p/" + encodeURIComponent(pid) + "/settings", title: "settings" }, "⚙"));
   const panel = threadsPanel(pid);
   cleanup = () => panel.stop();
   $("#main").replaceChildren(h("div", { class: "col" }, panel.el,
@@ -544,8 +607,40 @@ async function showProject(pid) {
   if (wide.matches) input.focus();
 }
 
+function showArchive() {
+  $("#hdr").replaceChildren(h("a", { class: "back", href: "#/", "aria-label": "Back" }, "‹"), h("span", { class: "title" }, "archive"));
+  const col = h("div", { class: "col" });
+  $("#main").replaceChildren(col);
+  async function act(fn) { try { await fn(); await loadList(); draw(); } catch (err) { alert(err.message); } }
+  function draw() {
+    const out = [];
+    const aps = projects.filter(p => p.archived);
+    if (aps.length) {
+      out.push(h("div", { class: "psec" }, h("h2", {}, "projects"), ...aps.map(p => h("div", { class: "arow" },
+        h("span", { class: "pt1" }, p.name), h("span", { class: "pt2" }, `${p.threads} open · ${p.archived_threads} archived`),
+        h("button", { onclick: () => act(() => api("POST", `/api/projects/${encodeURIComponent(p.id)}/archive`, { archived: false })) }, "unarchive")))));
+    }
+    const ats = threads.filter(t => t.archived && t.kind !== "manager");
+    const byProj = new Map();
+    for (const t of ats) { if (!byProj.has(t.project)) byProj.set(t.project, []); byProj.get(t.project).push(t); }
+    for (const [pid, ts] of byProj) {
+      const name = projects.find(p => p.id === pid)?.name || pid;
+      out.push(h("div", { class: "psec" }, h("h2", {}, name, h("span", { class: "spacer" }),
+          h("button", { class: "ui-mini", onclick: () => { if (confirm(`Delete all ${ts.length} archived threads in ${name} for good?`)) act(async () => { for (const t of ts) await api("DELETE", `/api/threads/${t.id}`).catch(() => {}); }); } }, "delete all")),
+        ...ts.map(t => h("div", { class: "arow" },
+          dot(t), h("a", { class: "pt1", href: "#/t/" + encodeURIComponent(t.id) }, t.title), h("span", { class: "pt2" }, ago(t.updated)),
+          h("button", { onclick: () => act(() => api("POST", `/api/threads/${t.id}/archive`, { archived: false })) }, "unarchive"),
+          h("button", { class: "danger", onclick: () => { if (confirm("Delete this thread and its transcript for good?")) act(() => api("DELETE", `/api/threads/${t.id}`)); } }, "delete")))));
+    }
+    if (!out.length) out.push(h("div", { class: "empty" }, "nothing archived"));
+    col.replaceChildren(...out);
+  }
+  draw();
+  loadList().then(() => { if (location.hash === "#/archive") draw(); });
+}
+
 function showProjectSettings(pid) {
-  const titleEl = h("span", { class: "title" }, "defaults & notes");
+  const titleEl = h("span", { class: "title" }, "settings");
   $("#hdr").replaceChildren(h("a", { class: "back", href: "#/p/" + encodeURIComponent(pid), "aria-label": "Back" }, "‹"), titleEl);
   const col = h("div", { class: "col" });
   $("#main").replaceChildren(col);
@@ -557,6 +652,34 @@ function showProjectSettings(pid) {
   const saved = h("span", { class: "saved" });
   const save = h("button", { class: "start", type: "submit" }, "save");
   const repoLine = h("div", { class: "repo-line" });
+  const toolsBox = h("div", { class: "tools-set" }, h("div", { class: "pnote" }, "loading…"));
+  let toolState = null; // { on, allowed, settings } for the PATCH
+  function drawTools(list, p) {
+    toolState = { on: new Set(p.tools || []), allowed: new Set(p.tools_allowed || []), settings: structuredClone(p.tool_settings || {}) };
+    if (!list.tools?.length) {
+      toolsBox.replaceChildren(h("div", { class: "pnote" }, `No actions installed. An action is a folder in ${list.dir} with a tool.json and a script; secrets go in ${list.secrets_file}.`));
+      return;
+    }
+    toolsBox.replaceChildren(...list.tools.map(t => {
+      const on = h("input", { type: "checkbox" }); on.checked = toolState.on.has(t.name);
+      on.addEventListener("change", () => on.checked ? toolState.on.add(t.name) : toolState.on.delete(t.name));
+      const al = h("input", { type: "checkbox" }); al.checked = toolState.allowed.has(t.name);
+      al.addEventListener("change", () => al.checked ? toolState.allowed.add(t.name) : toolState.allowed.delete(t.name));
+      const sets = (t.settings || []).map(st => {
+        const inp = h("input", { placeholder: st.default || st.description || "", autocapitalize: "off", autocorrect: "off", spellcheck: "false" });
+        inp.value = toolState.settings[t.name]?.[st.name] || "";
+        inp.addEventListener("input", () => { (toolState.settings[t.name] ||= {})[st.name] = inp.value.trim(); });
+        return h("div", { class: "field", title: st.description || "" }, h("label", {}, st.name), inp);
+      });
+      return h("div", { class: "tool-item" },
+        h("div", { class: "tn" }, h("label", { class: "ck" }, on, h("b", {}, t.name)),
+          t.approval === "ask" ? h("label", { class: "ck" }, al, "run without asking") : h("span", { class: "td" }, t.approval === "none" ? "never asks" : "asks every run")),
+        t.description ? h("div", { class: "td" }, t.description) : null,
+        t.error ? h("div", { class: "tw" }, "can't load: " + t.error) : null,
+        t.missing?.length ? h("div", { class: "tw" }, `needs ${t.missing.join(", ")} in ${list.secrets_file}`) : null,
+        ...sets);
+    }));
+  }
   const form = h("form", { class: "new" },
     repoLine,
     h("h2", {}, "defaults for new threads"),
@@ -566,12 +689,20 @@ function showProjectSettings(pid) {
       h("div", {}, h("div", { class: "field" }, h("label", {}, "effort"), dEffort))),
     h("h2", { style: "margin-top:28px" }, "notes"),
     notes,
-    h("div", { class: "actions" }, save, saved));
+    h("h2", { style: "margin-top:28px" }, "actions"),
+    toolsBox,
+    h("div", { class: "actions" }, save, saved,
+      pid !== "scratch" ? h("span", { class: "spacer" }) : null,
+      pid !== "scratch" ? h("button", { class: "btn", type: "button", style: "border-color:var(--err);color:var(--err)", onclick: async () => {
+        if (!confirm("Archive this project? It's hidden from the sidebar and its manager's guest is removed.")) return;
+        try { await api("POST", `/api/projects/${encodeURIComponent(pid)}/archive`, { archived: true }); await loadList(); location.hash = "#/"; } catch (err) { alert(err.message); }
+      } }, "archive project") : null));
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     save.disabled = true;
     try {
-      await api("PATCH", `/api/projects/${encodeURIComponent(pid)}`, { branch: dBranch.value, model: dModel.value, effort: dEffort.value, notes: notes.value });
+      await api("PATCH", `/api/projects/${encodeURIComponent(pid)}`, { branch: dBranch.value, model: dModel.value, effort: dEffort.value, notes: notes.value,
+        ...(toolState ? { tools: [...toolState.on], tools_allowed: [...toolState.allowed], tool_settings: toolState.settings } : {}) });
       saved.textContent = "saved"; setTimeout(() => saved.textContent = "", 2000);
       loadList();
     } catch (err) { alert(err.message); }
@@ -581,13 +712,34 @@ function showProjectSettings(pid) {
   (modelList ? Promise.resolve() : loadModels()).then(async () => {
     try {
       const p = await api("GET", `/api/projects/${encodeURIComponent(pid)}`);
-      titleEl.textContent = p.name + " · defaults & notes";
+      titleEl.textContent = p.name + " · settings";
       repoLine.textContent = p.repo || "blank workspaces · no repo";
       dBranch.value = p.branch || "";
       fillModels(dModel, dEffort, p.model || "", p.effort || "");
       notes.value = p.notes || ""; autogrow(notes);
+      api("GET", "/api/tools").then(list => drawTools(list, p)).catch(err => toolsBox.replaceChildren(h("div", { class: "pnote" }, err.message)));
     } catch (err) { col.replaceChildren(h("div", { class: "empty" }, err.message)); }
   });
+}
+
+// prepImage reads an image for sending to Claude: big ones are scaled down
+// (Claude sees at most about 1600px anyway) and re-encoded to stay small.
+async function prepImage(file) {
+  const toB64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+  const okType = /^image\/(png|jpeg|gif|webp)$/.test(file.type);
+  const bmp = await createImageBitmap(file);
+  const max = 2000, scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  let blob = file;
+  if (!okType || scale < 1 || file.size > 1.5e6) {
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    blob = await new Promise(res => c.toBlob(res, "image/png"));
+    if (blob.size > 1.5e6) blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
+  }
+  bmp.close?.();
+  const base = (file.name || "screenshot").replace(/\.[^.]+$/, "");
+  return { name: base + (blob.type === "image/jpeg" ? ".jpg" : blob.type === "image/png" ? ".png" : "." + blob.type.split("/")[1]), mime: blob.type, data: await toB64(blob), url: URL.createObjectURL(blob) };
 }
 
 // ---------- image viewer ----------
@@ -645,16 +797,49 @@ function showThread(id, proj = null) {
   modelSel.addEventListener("change", saveSettings);
   effortSel.addEventListener("change", saveSettings);
   if (modelList == null) loadModels().then(() => syncSettings(true));
+  // Attached images: the 📎 button, paste, or drag and drop.
+  const attached = []; // { name, mime, data (base64), url (preview) }
+  const strip = h("div", { class: "attach-strip", hidden: true });
+  const fileIn = h("input", { type: "file", accept: "image/*", multiple: true, hidden: true });
+  fileIn.addEventListener("change", () => { addImages(fileIn.files); fileIn.value = ""; });
+  const attachBtn = h("button", { class: "attach-btn", type: "button", "aria-label": "Attach images", title: "attach images (or paste)", onclick: () => fileIn.click() }, "📎");
+  function drawStrip() {
+    strip.hidden = !attached.length && !strip._busy;
+    strip.replaceChildren(...attached.map((a, i) => h("div", { class: "th" }, h("img", { src: a.url, alt: a.name }),
+      h("button", { "aria-label": "Remove", onclick: () => { attached.splice(i, 1); drawStrip(); syncButton(); } }, "×"))),
+      strip._busy ? h("span", { class: "busy" }, "preparing…") : null);
+  }
+  async function addImages(files) {
+    const imgs = [...files].filter(f => f.type.startsWith("image/"));
+    if (!imgs.length) return;
+    strip._busy = true; drawStrip();
+    for (const f of imgs) {
+      if (attached.length >= 10) { alert("at most 10 images per message"); break; }
+      try { attached.push(await prepImage(f)); } catch (err) { alert(`couldn't read ${f.name || "the image"}: ${err.message}`); }
+    }
+    strip._busy = false; drawStrip(); syncButton();
+    input.focus();
+  }
+  input.addEventListener("paste", (e) => {
+    const files = [...(e.clipboardData?.items || [])].filter(it => it.kind === "file").map(it => it.getAsFile()).filter(Boolean);
+    if (files.some(f => f.type.startsWith("image/"))) { e.preventDefault(); addImages(files); }
+  });
+  const onDragOver = (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); document.body.classList.add("dropping"); } };
+  const onDragLeave = (e) => { if (!e.relatedTarget) document.body.classList.remove("dropping"); };
+  const onDrop = (e) => { if (e.dataTransfer?.files?.length) { e.preventDefault(); addImages(e.dataTransfer.files); } document.body.classList.remove("dropping"); };
+  addEventListener("dragover", onDragOver); addEventListener("dragleave", onDragLeave); addEventListener("drop", onDrop);
   $("#ftr-in").replaceChildren(
     h("div", { class: "opts" }, h("label", {}, "model", modelSel), h("label", {}, "effort", effortSel)),
-    h("div", { class: "composer" }, input, btn));
+    strip, fileIn,
+    h("div", { class: "composer" }, input, attachBtn, btn));
   $("#ftr").hidden = false;
 
   function syncButton() {
-    const stop = meta?.status === "running" && !input.value.trim();
+    const has = input.value.trim() || attached.length;
+    const stop = meta?.status === "running" && !has;
     btn.className = "send" + (stop ? " stop" : "");
     btn.textContent = stop ? "stop" : "send";
-    btn.disabled = !stop && !input.value.trim();
+    btn.disabled = !stop && (!has || strip._busy);
   }
   function setMeta(m) {
     meta = m;
@@ -662,17 +847,20 @@ function showThread(id, proj = null) {
       titleEl.textContent = m.title;
       if (m.project) $(".back", $("#hdr")).href = "#/p/" + encodeURIComponent(m.project);
     }
-    statusHolder.replaceChildren(h("span", { class: "status" }, dot(m), statusText(m)));
+    statusHolder.replaceChildren(h("span", { class: "status" }, dot(m), m.archived ? "archived" : statusText(m)));
     working.hidden = m.status !== "running";
+    if (caughtUp && !document.hidden && !unseen.size) markSeen(m.id, m.replied);
     syncButton();
     syncSettings();
   }
   async function send() {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !attached.length) return;
     btn.disabled = true;
-    try { await api("POST", `/api/threads/${id}/messages`, { text }); input.value = ""; autogrow(input); }
-    catch (err) { alert(err.message); }
+    try {
+      await api("POST", `/api/threads/${id}/messages`, { text, images: attached.map(({ name, mime, data }) => ({ name, mime, data })) });
+      input.value = ""; autogrow(input); attached.length = 0; drawStrip();
+    } catch (err) { alert(err.message); }
     syncButton();
   }
   async function interrupt() { try { await api("POST", `/api/threads/${id}/interrupt`); } catch (err) { alert(err.message); } }
@@ -682,11 +870,35 @@ function showThread(id, proj = null) {
     menu.append(h("div", { class: "menu-pop", onclick: (e) => e.stopPropagation() },
       h("div", { class: "info" }, meta?.repo ? shortRepo(meta.repo) + (meta.branch ? "@" + meta.branch : "") : "blank workspace"),
       meta?.guest ? h("div", { class: "info" }, (proj ? "manager · " : "") + meta.guest) : null,
-      proj ? h("button", { onclick: () => { location.hash = "#/p/" + encodeURIComponent(proj.id) + "/settings"; } }, "defaults & notes") : null,
-      h("button", { class: "danger", onclick: destroy }, proj ? "restart manager" : "remove guest")));
+      proj ? h("button", { onclick: () => { location.hash = "#/p/" + encodeURIComponent(proj.id) + "/settings"; } }, "settings") : null,
+      !proj && !meta?.archived ? h("button", { onclick: archive }, "archive") : null,
+      !proj && meta?.archived ? h("button", { onclick: () => setArchived(false) }, "unarchive") : null,
+      !proj && meta?.archived ? h("button", { class: "danger", onclick: deleteForever }, "delete forever") : null,
+      !meta?.archived && meta?.status !== "destroyed" ? h("button", { class: "danger", onclick: destroy }, proj ? "restart manager" : "remove guest") : null,
+      proj ? h("button", { class: "danger", onclick: archiveProject }, "archive project") : null));
   }
   const closeMenu = () => $(".menu-pop", menu)?.remove();
   document.addEventListener("click", closeMenu);
+  async function setArchived(on) {
+    closeMenu();
+    try { setMeta(await api("POST", `/api/threads/${id}/archive`, { archived: on })); await loadList(); } catch (err) { alert(err.message); }
+  }
+  async function archive() {
+    const live = meta && meta.status !== "destroyed" && meta.status !== "failed";
+    if (live && !confirm("Archive this thread? Its guest is removed (files in it are deleted); the transcript stays in the archive.")) { closeMenu(); return; }
+    await setArchived(true);
+    location.hash = meta?.project ? "#/p/" + encodeURIComponent(meta.project) : "#/";
+  }
+  async function deleteForever() {
+    closeMenu();
+    if (!confirm("Delete this thread and its transcript for good?")) return;
+    try { await api("DELETE", `/api/threads/${id}`); await loadList(); location.hash = "#/archive"; } catch (err) { alert(err.message); }
+  }
+  async function archiveProject() {
+    closeMenu();
+    if (!confirm(`Archive ${proj.name}? It's hidden from the sidebar and its manager's guest is removed. Its threads keep running.`)) return;
+    try { await api("POST", `/api/projects/${encodeURIComponent(proj.id)}/archive`, { archived: true }); await loadList(); location.hash = "#/"; } catch (err) { alert(err.message); }
+  }
   async function destroy() {
     closeMenu();
     if (!confirm(proj ? "Remove the manager's guest? The next message starts a fresh manager (this conversation isn't carried over)." : "Remove this thread's guest? Its files are deleted.")) return;
@@ -694,8 +906,9 @@ function showThread(id, proj = null) {
   }
 
   // --- rendering ---
-  const tools = new Map();
+  const tools = new Map(), toolRuns = new Map();
   let setup = null, stderr = null, ws = null, curModel = "";
+  let renderInto = tx; // where new turns go: tx, or an older page being built
   const uiBlocks = new Map(); // ui id -> { el, view, ask }
   function uiAnswered(b, action, state) {
     b.el.classList.add("answered");
@@ -707,7 +920,89 @@ function showThread(id, proj = null) {
     $(".ui-head", b.el).append(h("span", { class: "ui-ans" }, "answered · " + action));
   }
   const atBottom = () => main.scrollHeight - main.scrollTop - main.clientHeight < 80;
-  function add(el) { const stick = !caughtUp || atBottom(); tx.append(el); if (stick) main.scrollTop = main.scrollHeight; }
+  // Each message starts a turn: the message, then its work (tool steps, which
+  // fold into one line when the turn ends), then the reply. Claude handles
+  // queued messages in order, so output goes to the oldest unfinished turn.
+  const turns = [];
+  let newReply = null, curEv = 0;
+  // Unseen: everything Claude says or shows after the last event you saw in
+  // this thread gets a marker that fades once it has been on screen.
+  const seenEv = (() => { try { return JSON.parse(store.get("rux.seenEv") || "{}"); } catch { return {}; } })();
+  let seenPtr = seenEv[id] ?? Infinity; // a thread you've never opened has nothing "new"
+  const unseen = new Set();
+  const saveSeen = (n) => { if (n > (seenEv[id] || 0) || seenEv[id] == null) { seenEv[id] = n; store.set("rux.seenEv", JSON.stringify(seenEv)); } };
+  const io = new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      const el = en.target;
+      clearTimeout(el._seenT);
+      if (en.isIntersecting && !document.hidden) el._seenT = setTimeout(() => seeIt(el), 1200);
+    }
+  }, { root: main, threshold: 0.5 });
+  function seeIt(el) {
+    if (!unseen.has(el)) return;
+    unseen.delete(el); io.unobserve(el);
+    el.classList.add("nw-out");
+    setTimeout(() => el.classList.remove("nw", "nw-out"), 1100);
+    // Everything before the oldest still-unseen item counts as seen.
+    if (unseen.size) saveSeen(Math.min(...[...unseen].map(e => +e.dataset.ev)) - 1);
+    else { saveSeen(lastId); if (meta) markSeen(meta.id, meta.replied); }
+    syncPill();
+  }
+  function markNew(el) {
+    if (curEv <= seenPtr || !el?.classList) return;
+    el.classList.add("nw"); el.dataset.ev = curEv;
+    unseen.add(el); io.observe(el);
+  }
+  function firstUnseenBelow() {
+    const r = main.getBoundingClientRect();
+    return [...unseen].filter(el => el.isConnected).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+      .find(el => el.getBoundingClientRect().top > r.bottom - 40);
+  }
+  function syncPill() {
+    const below = caughtUp ? firstUnseenBelow() : null;
+    if (!below) { newReply?.remove(); newReply = null; return; }
+    const n = [...unseen].filter(el => el.isConnected && el.getBoundingClientRect().top > main.getBoundingClientRect().bottom - 40).length;
+    if (!newReply) { newReply = h("button", { class: "newreply", onclick: () => { firstUnseenBelow()?.scrollIntoView({ behavior: "smooth", block: "start" }); } }); $("#ftr").append(newReply); }
+    newReply.textContent = `↓ ${n} new`;
+  }
+  const visibleKinds = (el) => el.classList.contains("text") || el.classList.contains("tool-run") || el.classList.contains("asset") || el.classList.contains("ui-block") || el.classList.contains("err-line");
+  function add(el) {
+    const stick = !caughtUp || (atBottom() && !firstUnseenBelow());
+    (turns[0]?.work || renderInto).append(el);
+    if (visibleKinds(el)) markNew(el);
+    if (stick) main.scrollTop = main.scrollHeight;
+    if (caughtUp) syncPill();
+  }
+  function startTurn(head) {
+    const work = h("div", { class: "work" });
+    const el = h("div", { class: "turn" }, head, work);
+    const stick = !caughtUp || atBottom();
+    renderInto.append(el);
+    turns.push({ el, work, t0: Date.now() });
+    if (stick) main.scrollTop = main.scrollHeight;
+  }
+  function endTurn(summary) {
+    const t = turns.shift();
+    if (!t) { if (summary) add(summary); return; }
+    const kids = [...t.work.children];
+    // The reply is the last text; it and anything shown to the user stay out.
+    const texts = kids.filter(k => k.classList.contains("text"));
+    const final = texts[texts.length - 1];
+    const keep = kids.filter(k => k === final || k.classList.contains("asset") || k.classList.contains("ui-block") || k.classList.contains("err-line") || k.classList.contains("tool-run"));
+    const steps = kids.filter(k => !keep.includes(k));
+    for (const k of keep) t.el.append(k);
+    if (steps.length) {
+      const n = steps.filter(k => k.classList.contains("step")).length, more = steps.length - n;
+      const label = [n ? `${n} step${n === 1 ? "" : "s"}` : "", more ? `${more} note${more === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ");
+      t.work.prepend(h("button", { class: "fold", onclick: () => { t.work.classList.toggle("folded"); t.work.classList.toggle("opened"); } }, label));
+      t.work.classList.add("folded");
+    }
+    if (summary) t.el.append(summary);
+    if (caughtUp) syncPill();
+  }
+  main.addEventListener("scroll", () => { if (newReply) syncPill(); });
+  const onVisSeen = () => { if (!document.hidden) for (const el of unseen) { io.unobserve(el); io.observe(el); } };
+  document.addEventListener("visibilitychange", onVisSeen);
   function step(name, arg, detail, sigil = "$") {
     const mark = h("span", { class: "mark" });
     const det = h("div", { class: "detail" }, ...(detail || []));
@@ -759,6 +1054,28 @@ function showThread(id, proj = null) {
         add(el);
         break;
       }
+      case "rux_tool": {
+        let r = toolRuns.get(ev.run);
+        if (!r) {
+          const pre = h("pre");
+          const s = step(ev.tool, "", [pre], "⚙");
+          s.el.classList.add("tool-run");
+          r = { ...s, pre }; toolRuns.set(ev.run, r); add(s.el);
+        }
+        if (ev.log) r.pre.append(ev.log + "\n");
+        if (ev.args) r.args = Object.entries(ev.args).map(([k, v]) => k + "=" + String(v).split("/").pop()).join(" ");
+        if (ev.state) {
+          const label = { starting: "starting", approval: "waiting for your ok", queued: "queued", running: "running on the host", done: "done", failed: "failed", denied: "denied" }[ev.state] || ev.state;
+          r.argEl.textContent = [label, r.args].filter(Boolean).join(" · ");
+          if (["done", "failed", "denied"].includes(ev.state)) {
+            setMark(r.mark, ev.state === "done");
+            if (ev.ms) r.argEl.textContent += ` · ${Math.round(ev.ms / 1000)}s`;
+            if (ev.summary) r.el.insertBefore(h("div", { class: "sum" }, ev.summary), r.det);
+            if (ev.state !== "done") r.el.classList.add("open");
+          } else { r.mark.className = "mark run"; r.mark.textContent = "…"; }
+        }
+        break;
+      }
       case "rux_ui_answer": {
         const b = uiBlocks.get(ev.ui);
         if (b && b.ask) { b.done = true; $(".ui-badge.warn", b.el)?.remove(); uiAnswered(b, ev.action, ev.state); }
@@ -795,16 +1112,24 @@ function showThread(id, proj = null) {
       case "rux_user":
         if (ev.text.startsWith("[rux] ")) {
           const m = ev.text.match(/^\[rux\] worker \S+ \("(.*?)"\)(?::| )(.*?)(?:\. Its last message|$)/m);
-          const s = step("worker", m ? `${m[1]} · ${m[2]}` : ev.text.slice(6, 120), [h("pre", {}, ev.text.slice(6))], "#");
-          s.el.classList.add("wake"); add(s.el);
-        } else add(h("div", { class: "user" }, ev.text));
+          const tm = ev.text.match(/^\[rux\] Action run \S+ \((.*?)\) ended: (\w+)/);
+          const s = tm ? step("tool", `${tm[1]} · ${tm[2]}`, [h("pre", {}, ev.text.slice(6))], "⚙")
+            : step("worker", m ? `${m[1]} · ${m[2]}` : ev.text.slice(6, 120), [h("pre", {}, ev.text.slice(6))], "#");
+          s.el.classList.add("wake"); startTurn(s.el);
+        } else {
+          const imgs = (ev.images || []).length ? h("div", { class: "imgs" }, ...ev.images.map(u => h("img", { src: u, loading: "lazy", onclick: () => openImage(u) }))) : null;
+          startTurn(h("div", { class: "user" }, imgs ? h("div", {}, ev.text ? h("div", {}, ev.text) : null, imgs) : ev.text));
+        }
         break;
       case "rux_interrupt": add(h("div", { class: "done" }, "stopped")); break;
       case "rux_claude_start": stderr = null; break;
       case "rux_stderr": case "rux_stdout":
         if (!stderr) stderr = logStep("claude stderr", "#");
         stderr.line(ev.text); break;
-      case "rux_exit": if (ev.code) add(h("div", { class: "err-line" }, `claude exited (${ev.code})`)); break;
+      case "rux_exit":
+        if (ev.code) add(h("div", { class: "err-line" }, `claude exited (${ev.code})`));
+        while (turns.length) endTurn(null); // no results are coming for these
+        break;
       case "assistant":
         for (const p of ev.message?.content || []) {
           if (p.type === "text" && p.text.trim()) add(h("div", { class: "text" }, md(p.text)));
@@ -837,10 +1162,52 @@ function showThread(id, proj = null) {
         if (ev.num_turns) bits.push(ev.num_turns + (ev.num_turns === 1 ? " turn" : " turns"));
         if (ev.total_cost_usd) bits.push("~$" + ev.total_cost_usd.toFixed(2));
         if (curModel) bits.push(shortModel(curModel));
-        if (bits.length) add(h("div", { class: "done" }, bits.join(" · ")));
+        endTurn(bits.length ? h("div", { class: "done" }, bits.join(" · ")) : null);
         break;
       }
     }
+  }
+
+  // Pages: open with the latest events, and load earlier ones on scroll up.
+  let firstId = 1, loadingOlder = false;
+  const earlier = h("button", { class: "earlier", hidden: true, onclick: () => loadOlder() }, "load earlier");
+  tx.prepend(earlier);
+  const olderIO = new IntersectionObserver((es) => { if (es.some(e => e.isIntersecting) && caughtUp) loadOlder(); }, { root: main, rootMargin: "800px 0px 0px 0px" });
+  olderIO.observe(earlier);
+  const pageURL = (q) => `/api/threads/${id}/events/page?` + new URLSearchParams(q);
+  async function loadLatest() {
+    try {
+      const q = { min: 200 };
+      if (seenPtr !== Infinity) q.from = seenPtr + 1;
+      const pg = await api("GET", pageURL(q));
+      if (closed) return;
+      for (const se of pg.events) { lastId = se.id; curEv = se.id; render(se.ev || {}); }
+      firstId = pg.start;
+      earlier.hidden = firstId <= 1;
+    } catch {} // the stream sends everything instead
+    connect();
+  }
+  async function loadOlder() {
+    if (loadingOlder || firstId <= 1 || closed) return;
+    loadingOlder = true; earlier.textContent = "loading…";
+    try {
+      const pg = await api("GET", pageURL({ before: firstId, min: 200 }));
+      // Render the page on its own: its turns are complete, so close them all.
+      const saved = { turns: turns.splice(0), setup, stderr, ws, curModel, curEv };
+      const box = h("div", { class: "older" });
+      renderInto = box; setup = stderr = ws = null;
+      for (const se of pg.events) { curEv = se.id; render(se.ev || {}); }
+      while (turns.length) endTurn(null);
+      turns.push(...saved.turns); renderInto = tx;
+      ({ setup, stderr, ws, curModel, curEv } = saved);
+      const h0 = main.scrollHeight, top0 = main.scrollTop;
+      earlier.after(box);
+      main.scrollTop = top0 + (main.scrollHeight - h0); // stay where you were
+      firstId = pg.start;
+    } catch (err) { console.warn(err); }
+    earlier.textContent = "load earlier"; earlier.hidden = firstId <= 1; loadingOlder = false;
+    // Still near the top (a short page)? Keep going.
+    if (!earlier.hidden && main.scrollTop < 800) setTimeout(loadOlder, 50);
   }
 
   function connect() {
@@ -851,17 +1218,27 @@ function showThread(id, proj = null) {
       if (se.id <= lastId) return;
       lastId = se.id;
       const ev = se.ev || {};
+      curEv = se.id;
       render(ev);
       if (ev.type === "rux_status" || ev.type === "rux_runner_connected" || ev.type === "rux_runner_disconnected" || ev.type === "rux_guest") refresh();
     };
-    es.addEventListener("caughtup", () => { caughtUp = true; main.scrollTop = main.scrollHeight; });
+    es.addEventListener("caughtup", () => {
+      if (caughtUp) return;
+      caughtUp = true;
+      if (seenPtr === Infinity) { seenPtr = lastId; saveSeen(lastId); } // first visit: nothing is "new"
+      const first = [...unseen].filter(el => el.isConnected).sort((a, b) => +a.dataset.ev - +b.dataset.ev)[0];
+      // Land on the first thing you haven't seen, or at the bottom.
+      if (first) first.scrollIntoView({ block: "start" }); else { main.scrollTop = main.scrollHeight; saveSeen(lastId); if (meta) markSeen(meta.id, meta.replied); }
+      syncPill();
+      if (!earlier.hidden && main.scrollTop < 800) loadOlder();
+    });
   }
   async function refresh() { try { setMeta(await api("GET", `/api/threads/${id}`)); } catch {} }
-  refresh(); connect();
+  refresh(); loadLatest();
   if (wide.matches) input.focus();
   const onVis = () => { if (document.visibilityState === "visible") { refresh(); if (es && es.readyState === 2) connect(); } };
   document.addEventListener("visibilitychange", onVis);
-  cleanup = () => { closed = true; es?.close(); panel?.stop(); document.removeEventListener("click", closeMenu); document.removeEventListener("visibilitychange", onVis); };
+  cleanup = () => { closed = true; es?.close(); olderIO.disconnect(); panel?.stop(); newReply?.remove(); io.disconnect(); document.removeEventListener("visibilitychange", onVisSeen); document.removeEventListener("click", closeMenu); document.removeEventListener("visibilitychange", onVis); removeEventListener("dragover", onDragOver); removeEventListener("dragleave", onDragLeave); removeEventListener("drop", onDrop); document.body.classList.remove("dropping"); };
 }
 
 

@@ -29,6 +29,15 @@ type wireMsg struct {
 	Have int64             `json:"have"`
 	Text string            `json:"text,omitempty"`
 	Info map[string]string `json:"info,omitempty"`
+	// Images the user attached to a "user" message.
+	Files []attachment `json:"files,omitempty"`
+}
+
+type attachment struct {
+	Name string `json:"name"`
+	Mime string `json:"mime"`
+	Data []byte `json:"data"` // base64 in JSON
+	URL  string `json:"url"`  // where the app shows it
 }
 
 const wsReadLimit = 256 << 20 // tool results can be large
