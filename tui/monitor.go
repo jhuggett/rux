@@ -163,35 +163,35 @@ func (mo *monitor) view(m *model, c *canvas) {
 	}
 	g := m.grow.pos
 	if bot-y >= 18 {
-	hourly := ov.Usage.Hourly
-	total := 0
-	for _, v := range hourly {
-		total += v
-	}
-	bars := barChart(hourly, lw-4, ch-3, g)
-	axis := sFaint.Render(padRight("-24h", (lw-4)/2) + padRight("-12h", (lw-4)/2-3) + "now")
-	c.blit(x0, y, box(lw, ch, sDim, sWhite.Render("activity · 24h")+sFaint.Render(fmt.Sprintf(" · %d tool calls", total)), append(prefixAll(bars, " "), " "+axis)), 0)
-	rw := W - lw - 1
-	spark := func(label string, vals []float64, unit string) []string {
-		cur := 0.0
-		if len(vals) > 0 {
-			cur = vals[len(vals)-1]
+		hourly := ov.Usage.Hourly
+		total := 0
+		for _, v := range hourly {
+			total += v
 		}
-		lbl := sFaint.Render(padRight(label, 12)) + sPale.Render(padRight(fmt.Sprintf("%.1f%s", cur, unit), 8))
-		br := braille(vals, rw-24, 2, g)
-		return []string{lbl + br[0], strings.Repeat(" ", 20) + br[1]}
-	}
-	hf := make([]float64, len(hourly))
-	for i, v := range hourly {
-		hf[i] = float64(v)
-	}
-	live := append(spark("tools · 24h", hf, ""), spark("host load", mo.load, "")...)
-	live = append(live, "")
-	live = append(live, strings.Split(statusBar(st, rw-4), "\n")...)
-	if W >= 120 {
-	c.blit(x0+lw+1, y, box(rw, ch, sDim, sWhite.Render("live")+sFaint.Render(" · "+time.UnixMilli(ov.At).Format("15:04:05")), prefixAll(live, " ")), 0)
-	}
-	y += ch + 1
+		bars := barChart(hourly, lw-4, ch-3, g)
+		axis := sFaint.Render(padRight("-24h", (lw-4)/2) + padRight("-12h", (lw-4)/2-3) + "now")
+		c.blit(x0, y, box(lw, ch, sDim, sWhite.Render("activity · 24h")+sFaint.Render(fmt.Sprintf(" · %d tool calls", total)), append(prefixAll(bars, " "), " "+axis)), 0)
+		rw := W - lw - 1
+		spark := func(label string, vals []float64, unit string) []string {
+			cur := 0.0
+			if len(vals) > 0 {
+				cur = vals[len(vals)-1]
+			}
+			lbl := sFaint.Render(padRight(label, 12)) + sPale.Render(padRight(fmt.Sprintf("%.1f%s", cur, unit), 8))
+			br := braille(vals, rw-24, 2, g)
+			return []string{lbl + br[0], strings.Repeat(" ", 20) + br[1]}
+		}
+		hf := make([]float64, len(hourly))
+		for i, v := range hourly {
+			hf[i] = float64(v)
+		}
+		live := append(spark("tools · 24h", hf, ""), spark("host load", mo.load, "")...)
+		live = append(live, "")
+		live = append(live, strings.Split(statusBar(st, rw-4), "\n")...)
+		if W >= 120 {
+			c.blit(x0+lw+1, y, box(rw, ch, sDim, sWhite.Render("live")+sFaint.Render(" · "+time.UnixMilli(ov.At).Format("15:04:05")), prefixAll(live, " ")), 0)
+		}
+		y += ch + 1
 	}
 
 	// ---- thread lanes with guest stats ----

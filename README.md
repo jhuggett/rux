@@ -100,6 +100,15 @@ An action is a folder `~/.rux/actions/NAME/` with a `tool.json` and a script. `a
 
 `itch-publish` builds the game on the Mac with the project's build command (default `make dist`, sandboxed) and pushes the output (default `build/itch`) with butler. Each branch goes to its own channel (`mac-BRANCH`), and the main branch goes to `mac`. It can also push a finished build with `--build`. Set `target` (`user/game`) in the project's settings, and put `BUTLER_API_KEY` in `~/.rux/secrets.env`; `butler login` saves one in `~/Library/Application Support/itch/butler_creds`.
 
+## Terminal UI
+
+`rux tui [--server URL]` is a terminal client for the same API as the app (default `http://127.0.0.1:7700`, or `$RUX_SERVER`; a tailnet `https://…ts.net` URL works too). `rux tui --demo` runs it against a built-in fake server with sample projects, threads and live activity.
+
+- **Navigation**: a spatial tree, root → projects → threads. The node you're on stays centered; parents are to the left, children to the right. Arrows or hjkl move, enter opens.
+- **Thread mode**: the agent's transcript with folded steps, inline images (half-block rendering; enter shows one full screen with Kitty, iTerm2 or Sixel graphics when the terminal supports them), file cards, `rux ui` specs rendered natively (`tui/uirender`) and answerable forms. `i` writes a message, ctrl+o attaches an image, ctrl+x interrupts.
+- **Monitor** (tab): usage, threads, host, 24h activity, per-thread activity lanes and guests.
+- `?` lists every key.
+
 ## Build and run
 
 ```sh
