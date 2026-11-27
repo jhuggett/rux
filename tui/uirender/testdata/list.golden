@@ -1,0 +1,9 @@
+✓ Build linux/amd64                                                        [42s]
+● Build darwin/arm64                                                   [running]
+  compiling tui/uirender
+◌ Integration tests
+  waiting for builds
+✗ Lint
+  3 issues in render.go
+○ Docs
+• a plain string item

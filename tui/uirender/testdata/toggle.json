@@ -1,0 +1,5 @@
+{"root": "s", "state": {"a": true, "b": false}, "elements": {
+  "s": {"type": "Stack", "props": {"gap": 0}, "children": ["a", "b"]},
+  "a": {"type": "Toggle", "props": {"label": "Run migrations", "value": {"$bindState": "/a"}}},
+  "b": {"type": "Toggle", "props": {"label": "Dry run", "value": {"$bindState": "/b"}}}
+}}

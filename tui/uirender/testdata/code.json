@@ -1,0 +1,2 @@
+{"type": "Code", "props": {"filename": "tui/uirender/render.go", "startLine": 98, "highlight": [100, 101],
+  "code": "// Render renders the spec's root.\nfunc Render(spec *Spec, opts Options) string {\n\tw := opts.Width\n\tif w <= 0 {\n\t\tw = 80 // default width, and a comment that is long enough to be truncated at the edge\n\t}\n\treturn \"ok\"\n}\n"}}

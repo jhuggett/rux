@@ -1,0 +1,10 @@
+╭─ tui/uirender/render.go ──────────────────────────────────────────────── go ─╮
+│   98 │ // Render renders the spec's root.                                    │
+│   99 │ func Render(spec *Spec, opts Options) string {                        │
+│ ▌100 │     w := opts.Width                                                   │
+│ ▌101 │     if w <= 0 {                                                       │
+│  102 │         w = 80 // default width, and a comment that is long enough t… │
+│  103 │     }                                                                 │
+│  104 │     return "ok"                                                       │
+│  105 │ }                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯

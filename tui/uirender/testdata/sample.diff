@@ -1,0 +1,13 @@
+diff --git a/main.go b/main.go
+index 3b18e51..a9c2f10 100644
+--- a/main.go
++++ b/main.go
+@@ -1,5 +1,6 @@
+ package main
+ 
++import "fmt"
+ 
+ func main() {
+-	println("hello")
++	fmt.Println("hello, terminal")
+ }

@@ -1,0 +1,6 @@
+{"root": "s", "state": {"plan": "fast", "extras": ["docs"]}, "elements": {
+  "s": {"type": "Stack", "children": ["c1", "c2", "c3"]},
+  "c1": {"type": "Choice", "props": {"label": "Plan", "options": ["fast", "thorough"], "value": {"$bindState": "/plan"}}},
+  "c2": {"type": "Choice", "props": {"label": "Extras", "multiple": true, "options": [{"value": "docs", "label": "Docs", "description": "update README and catalog"}, {"value": "tests", "label": "Tests", "description": "add golden tests"}], "value": {"$bindState": "/extras"}}},
+  "c3": {"type": "Choice", "props": {"options": [{"value": 1, "label": "One"}, {"value": 2, "label": "Two"}]}}
+}}

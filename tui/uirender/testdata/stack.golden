@@ -1,0 +1,9 @@
+Stacks
+
+[go 1.27]  [3 warnings]  [1 error]
+
+Left column with a fairly long            Right column, also wrapping onto a few
+paragraph that has to wrap because the    lines when space is shared.
+row is split between two children.
+
+                                    centered

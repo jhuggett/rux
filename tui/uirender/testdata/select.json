@@ -1,0 +1,6 @@
+{"_test": {"focus": "r2"},
+ "root": "s", "state": {"region": "eu"}, "elements": {
+  "s": {"type": "Stack", "children": ["r1", "r2"]},
+  "r1": {"type": "Select", "props": {"label": "Region", "options": [{"value": "us", "label": "US East"}, {"value": "eu", "label": "EU West"}], "value": {"$bindState": "/region"}}},
+  "r2": {"type": "Select", "props": {"label": "Size", "placeholder": "pick a size", "options": ["s", "m", "l"], "value": {"$bindState": "/size"}}}
+}}

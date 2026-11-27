@@ -1,0 +1,7 @@
+service                      p50 ms  p95 ms  status  notes
+────────────────────────────────────────────────────────────────────────────────
+api                              12      88  ok      steady
+auth                            9.5      41  ok
+billing-worker-with-a-long…     140    1210  slow    queue backed up since 09:0…
+search                           33     120  ok
+… 1 more row

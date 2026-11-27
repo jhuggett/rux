@@ -1,0 +1,20 @@
+╭─ fix width bug ────────────────────────────────────────────── 3 files +4 −1 ─╮
+│ ▸ render.go                                                            +2 −1 │
+│ @@ -10,7 +10,8 @@ func Render(spec *Spec) string {                           │
+│ 10 10       w := opts.Width                                                  │
+│ 11    −     if w < 0 {                                                       │
+│    11 +     if w <= 0 {                                                      │
+│ 12 12           w = 80                                                       │
+│ 13 13       }                                                                │
+│    14 +     c := newCtx(spec, opts)                                          │
+│ 14 15       out := c.Node(spec.Root, w)                                      │
+│ 15 16       return out                                                       │
+│ 16 17   }                                                                    │
+│                                                                              │
+│ ▸ notes.md new                                                         +2 −0 │
+│ @@ -0,0 +1,2 @@                                                              │
+│     1 + # Notes                                                              │
+│     2 + Terminal renderer.                                                   │
+│                                                                              │
+│ ▸ new.txt renamed from old.txt                                         +0 −0 │
+╰──────────────────────────────────────────────────────────────────────────────╯

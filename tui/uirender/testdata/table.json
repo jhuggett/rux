@@ -1,0 +1,10 @@
+{"type": "Table", "props": {
+  "columns": ["service", {"key": "p50", "label": "p50 ms", "align": "right", "mono": true}, {"key": "p95", "label": "p95 ms", "align": "right", "mono": true}, {"key": "status", "label": "status"}, "notes"],
+  "rows": [
+    {"service": "api", "p50": 12, "p95": 88, "status": "ok", "notes": "steady"},
+    {"service": "auth", "p50": 9.5, "p95": 41, "status": "ok", "notes": ""},
+    {"service": "billing-worker-with-a-long-name", "p50": 140, "p95": 1210, "status": "slow", "notes": "queue backed up since 09:00; investigating the consumer group lag on partition 7"},
+    {"service": "search", "p50": 33, "p95": 120, "status": "ok"},
+    ["array", 1, 2, "row", "as list"]
+  ],
+  "maxRows": 4}}

@@ -1,0 +1,4 @@
+{"type": "Stack", "children": [
+  {"type": "Diff", "props": {"src": "/api/threads/t/assets/sample.diff", "title": "uncommitted changes"}},
+  {"type": "Diff", "props": {"src": "/api/threads/t/assets/pending.diff", "title": "still loading"}}
+]}

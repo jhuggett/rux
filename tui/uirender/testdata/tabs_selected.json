@@ -1,0 +1,6 @@
+{"_test": {"tabs": {"e1": 1}},
+ "type": "Tabs", "props": {"tabs": ["Summary", "Logs", "Config"]}, "children": [
+  {"type": "Text", "props": {"text": "Build passed in 42s."}},
+  {"type": "Text", "props": {"text": "ok  github.com/x/y  0.4s\nok  github.com/x/z  1.2s", "mono": true}},
+  {"type": "KeyValue", "props": {"items": [{"key": "GOOS", "value": "linux"}]}}
+]}

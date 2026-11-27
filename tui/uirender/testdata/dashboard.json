@@ -1,0 +1,14 @@
+{"root": "main", "state": {"env": "prod"}, "elements": {
+  "main": {"type": "Card", "props": {"title": "Fleet overview", "subtitle": {"$template": "environment: ${/env}"}, "tone": "green"}, "children": ["stats", "row", "jobs", "lat", "hidden"]},
+  "stats": {"type": "Grid", "props": {"columns": 4}, "children": ["s1", "s2", "s3", "s4"]},
+  "s1": {"type": "Stat", "props": {"label": "Threads", "value": 12, "trend": 2}},
+  "s2": {"type": "Stat", "props": {"label": "Running", "value": 5, "tone": "green"}},
+  "s3": {"type": "Stat", "props": {"label": "Waiting", "value": 2, "tone": "warn"}},
+  "s4": {"type": "Stat", "props": {"label": "Cost today", "value": "$4.20", "sub": "budget $10"}},
+  "row": {"type": "Stack", "props": {"direction": "horizontal", "gap": 3}, "children": ["m1", "m2"]},
+  "m1": {"type": "Meter", "props": {"label": "Memory", "value": 0.42}},
+  "m2": {"type": "Meter", "props": {"label": "Disk", "value": 0.77}},
+  "jobs": {"type": "Table", "props": {"columns": ["thread", "state", {"key": "turns", "align": "right", "mono": true}], "rows": [{"thread": "fix-login", "state": "running", "turns": 14}, {"thread": "tui-prototype", "state": "waiting", "turns": 3}]}},
+  "lat": {"type": "Chart", "props": {"kind": "bar", "labels": ["a", "b", "c", "d", "e", "f"], "series": [{"data": [3, 5, 2, 7, 6, 4]}], "height": 100}},
+  "hidden": {"type": "Text", "visible": {"$state": "/env", "neq": "prod"}, "props": {"text": "not shown in prod"}}
+}}

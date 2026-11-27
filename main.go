@@ -3,12 +3,15 @@
 //	rux serve   - coordinator + host agent: web app, thread store, launches guests
 //	rux runner  - runs inside a guest: owns the claude process and dials home
 //	rux git-credential - git credential helper the runner sets up for its children
+//	rux tui    - terminal client for rux serve (spatial tree, threads, monitor)
 //	rux share / rux screenshot - used by claude in a guest to show the user files and pages
 package main
 
 import (
 	"fmt"
 	"os"
+
+	"github.com/jhuggett/rux/tui"
 )
 
 func main() {
@@ -34,12 +37,14 @@ func main() {
 		runTool(os.Args[2:])
 	case "sandbox":
 		runSandbox(os.Args[2:])
+	case "tui":
+		tui.Run(os.Args[2:])
 	default:
 		usage()
 	}
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: rux serve [flags] | rux runner [flags]  (-h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: rux serve [flags] | rux tui [--server URL] [--demo] | rux runner [flags]  (-h for flags)")
 	os.Exit(2)
 }

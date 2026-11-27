@@ -1,0 +1,5 @@
+{"type": "Stack", "props": {"gap": 0}, "children": [
+  {"type": "Heading", "props": {"text": "Level one heading", "level": 1}},
+  {"type": "Heading", "props": {"text": "Level two heading"}},
+  {"type": "Heading", "props": {"text": "Level three heading", "level": 3}}
+]}

@@ -1,0 +1,5 @@
+{"type": "Stack", "children": [
+  {"type": "Text", "props": {"text": "# Release notes\nThis release adds **terminal rendering** for `rux ui` specs, see [the docs](https://json-render.dev). It also fixes *several* bugs in the diff viewer that showed up on very long lines.\n\n- bullet one\n- bullet two is long enough that it needs to wrap onto a second line to fit in the width\n  - nested bullet\n1. first\n2. second\n\n> quoted text, muted\n\n```go\nfunc main() {\n\tfmt.Println(\"hi\")\n}\n```\n---\nThe end."}},
+  {"type": "Text", "props": {"text": "Muted tone", "tone": "muted"}},
+  {"type": "Text", "props": {"text": "Error tone", "tone": "error"}}
+]}

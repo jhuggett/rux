@@ -1,0 +1,20 @@
+╭─ Run the pipeline? ──────────────────────────────────────────────────────────╮
+│ Pick options, then Run                                                       │
+│                                                                              │
+│ Current speed: fast                                                          │
+│                                                                              │
+│ ▌ Speed                                                                      │
+│ ▌ (•) Fast                                                                   │
+│ ▌ ( ) Thorough                                                               │
+│ ▌     runs the slow integration suite too                                    │
+│                                                                              │
+│ Checks                                                                       │
+│ [x] lint  [ ] vet  [ ] race                                                  │
+│                                                                              │
+│ Region                                                                       │
+│ ▾ choose… (3)                                                                │
+│                                                                              │
+│ [on ] Dry run                                                                │
+│                                                                              │
+│ [ Run ]  [ Cancel ]                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯

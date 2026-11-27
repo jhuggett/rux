@@ -1,0 +1,7 @@
+{"type": "Grid", "props": {"columns": 3}, "children": [
+  {"type": "Stat", "props": {"label": "Requests", "value": "12.4k", "trend": 8.2, "sub": "vs last hour"}},
+  {"type": "Stat", "props": {"label": "Errors", "value": 17, "tone": "error", "trend": -3}},
+  {"type": "Stat", "props": {"label": "p95 latency", "value": "212 ms", "tone": "warn"}},
+  {"type": "Stat", "props": {"label": "Uptime", "value": "99.98%", "tone": "green"}},
+  {"type": "Meter", "props": {"label": "CPU", "value": 0.62}}
+]}

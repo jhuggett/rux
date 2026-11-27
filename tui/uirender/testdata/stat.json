@@ -1,0 +1,5 @@
+{"type": "Stack", "props": {"direction": "horizontal", "gap": 6}, "children": [
+  {"type": "Stat", "props": {"label": "Open PRs", "value": 14, "trend": 3, "sub": "this week"}},
+  {"type": "Stat", "props": {"label": "Failing", "value": 2, "tone": "error", "trend": -1}},
+  {"type": "Stat", "props": {"label": "Coverage", "value": "81.2%", "tone": "green", "sub": "target 80%"}}
+]}

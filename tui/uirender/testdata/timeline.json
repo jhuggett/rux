@@ -1,0 +1,8 @@
+{"type": "Timeline", "props": {"items": [
+  {"label": "checkout", "start": "2026-01-15T11:00:00Z", "end": "2026-01-15T11:04:00Z", "status": "done"},
+  {"label": "build", "start": "2026-01-15T11:04:00Z", "end": "2026-01-15T11:30:00Z", "status": "done"},
+  {"label": "test", "start": "2026-01-15T11:30:00Z", "status": "running"},
+  {"label": "deploy", "start": "2026-01-15T11:50:00Z", "end": "2026-01-15T12:10:00Z", "status": "waiting"},
+  {"label": "shard 1", "lane": "shards", "start": "2026-01-15T11:10:00Z", "end": "2026-01-15T11:25:00Z", "status": "done"},
+  {"label": "shard 2", "lane": "shards", "start": "2026-01-15T11:31:00Z", "end": "2026-01-15T11:45:00Z", "status": "failed"}
+], "to": "2026-01-15T12:15:00Z"}}

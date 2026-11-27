@@ -1,0 +1,6 @@
+{"type": "KeyValue", "props": {"items": [
+  {"key": "branch", "value": "tui-prototype"},
+  {"key": "commit", "value": "ef4ef86"},
+  {"key": "message", "value": "Actions, image attachments, paged threads, archiving, unseen highlights — and a long value that wraps under itself"},
+  {"key": "files", "value": 12}
+]}}

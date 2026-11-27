@@ -1,0 +1,7 @@
+{"_test": {"focus": "b2"},
+ "root": "s", "elements": {
+  "s": {"type": "Stack", "props": {"gap": 0}, "children": ["b1", "b2", "b3"]},
+  "b1": {"type": "Button", "props": {"label": "Approve", "variant": "primary"}, "on": {"press": {"action": "approve", "params": {"id": 3}}}},
+  "b2": {"type": "Button", "props": {"label": "Focused default"}},
+  "b3": {"type": "Button", "props": {"label": "Delete", "variant": "danger"}}
+}}

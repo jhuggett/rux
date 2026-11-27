@@ -1,0 +1,7 @@
+{"type": "Stack", "props": {"direction": "horizontal"}, "children": [
+  {"type": "Badge", "props": {"text": "default"}},
+  {"type": "Badge", "props": {"text": "green", "tone": "green"}},
+  {"type": "Badge", "props": {"text": "warn", "tone": "warn"}},
+  {"type": "Badge", "props": {"text": "error", "tone": "error"}},
+  {"type": "Badge", "props": {"text": "muted", "tone": "muted"}}
+]}

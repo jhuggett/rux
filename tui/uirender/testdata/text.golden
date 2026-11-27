@@ -1,0 +1,22 @@
+Release notes
+This release adds terminal rendering for rux ui specs, see the docs. It also
+fixes several bugs in the diff viewer that showed up on very long lines.
+
+• bullet one
+• bullet two is long enough that it needs to wrap onto a second line to fit in
+  the width
+  • nested bullet
+1. first
+2. second
+
+│ quoted text, muted
+
+  func main() {
+      fmt.Println("hi")
+  }
+────────────────────────────────────────────────────────────────────────────────
+The end.
+
+Muted tone
+
+Error tone

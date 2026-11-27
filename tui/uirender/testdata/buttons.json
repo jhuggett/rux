@@ -1,0 +1,7 @@
+{"type": "Buttons", "children": [
+  {"type": "Button", "props": {"label": "Merge", "variant": "primary"}},
+  {"type": "Button", "props": {"label": "Request changes"}},
+  {"type": "Button", "props": {"label": "Close", "variant": "danger"}},
+  {"type": "Button", "props": {"label": "A fourth button with a long label"}},
+  {"type": "Button", "props": {"label": "Fifth"}}
+]}

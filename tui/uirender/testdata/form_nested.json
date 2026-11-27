@@ -1,0 +1,15 @@
+{"_test": {"focus": "e3"},
+ "type": "Card", "state": {"speed": "fast", "checks": ["lint"], "region": null, "dry": true, "notes": ""},
+ "props": {"title": "Run the pipeline?", "subtitle": "Pick options, then Run"},
+ "children": [
+  {"type": "Text", "props": {"text": {"$template": "Current speed: **${/speed}**"}}},
+  {"type": "Choice", "props": {"label": "Speed", "options": [{"value": "fast", "label": "Fast"}, {"value": "thorough", "label": "Thorough", "description": "runs the slow integration suite too"}], "value": {"$bindState": "/speed"}}},
+  {"type": "Choice", "props": {"label": "Checks", "multiple": true, "options": ["lint", "vet", "race"], "value": {"$bindState": "/checks"}}},
+  {"type": "Select", "props": {"label": "Region", "options": ["us", "eu", "ap"], "value": {"$bindState": "/region"}}},
+  {"type": "Toggle", "props": {"label": "Dry run", "value": {"$bindState": "/dry"}}},
+  {"type": "TextInput", "visible": {"$state": "/dry", "eq": false}, "props": {"label": "Notes", "multiline": true, "placeholder": "why a real run?", "value": {"$bindState": "/notes"}}},
+  {"type": "Buttons", "children": [
+    {"type": "Button", "props": {"label": "Run", "variant": "primary"}, "on": {"press": {"action": "submit", "params": {"mode": {"$state": "/speed"}}}}},
+    {"type": "Button", "props": {"label": "Cancel", "variant": "danger"}, "on": {"press": [{"action": "setState", "params": {"statePath": "/x", "value": 1}}, {"action": "cancel"}]}}
+  ]}
+ ]}

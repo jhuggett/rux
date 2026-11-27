@@ -1,0 +1,7 @@
+{"_test": {"focus": "name"},
+ "root": "s", "state": {"name": "rux-tui", "notes": "", "long": "line one\nline two is here"}, "elements": {
+  "s": {"type": "Stack", "children": ["name", "notes", "long"]},
+  "name": {"type": "TextInput", "props": {"label": "Branch name", "value": {"$bindState": "/name"}}},
+  "notes": {"type": "TextInput", "props": {"label": "Notes", "placeholder": "anything else?", "multiline": true, "rows": 3, "value": {"$bindState": "/notes"}}},
+  "long": {"type": "TextInput", "props": {"multiline": true, "rows": 2, "value": {"$bindState": "/long"}}}
+}}

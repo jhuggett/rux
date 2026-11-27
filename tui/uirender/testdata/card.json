@@ -1,0 +1,6 @@
+{"root": "c", "elements": {
+  "c": {"type": "Card", "props": {"title": "Deploy status", "subtitle": "production · us-east-1"}, "children": ["t", "b"]},
+  "t": {"type": "Text", "props": {"text": "All **3** services are healthy."}},
+  "b": {"type": "Card", "props": {"title": "Warnings", "tone": "warn"}, "children": ["w"]},
+  "w": {"type": "Text", "props": {"text": "Disk on db-2 is at 81%.", "tone": "warn"}}
+}}

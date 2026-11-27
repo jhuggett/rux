@@ -1,0 +1,2 @@
+{"type": "Chart", "props": {"kind": "stackedBar", "labels": ["mon", "tue", "wed", "thu", "fri"],
+  "series": [{"name": "passed", "data": [40, 42, 38, 45, 47]}, {"name": "skipped", "data": [5, 3, 6, 2, 2]}, {"name": "failed", "data": [2, 0, 4, 1, 0]}], "height": 180}}

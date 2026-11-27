@@ -1,0 +1,4 @@
+{"type": "Stack", "children": [
+  {"type": "Image", "props": {"src": "/api/threads/t/assets/screenshot.png", "caption": "The new thread view"}},
+  {"type": "Image", "props": {"alt": "missing src"}}
+]}

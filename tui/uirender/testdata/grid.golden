@@ -1,0 +1,6 @@
+Requests                   Errors                     p95 latency
+12.4k                      17                         212 ms
+▲ 8.2 vs last hour         ▼ 3
+
+Uptime                     CPU                   62%
+99.98%                     ████████████████░░░░░░░░░

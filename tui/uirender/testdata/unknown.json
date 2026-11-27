@@ -1,0 +1,4 @@
+{"type": "Card", "props": {"title": "Has an unknown child"}, "children": [
+  {"type": "Sparkle", "props": {"intensity": 11, "color": "gold"}, "children": [{"type": "Text", "props": {"text": "child of the unknown component"}}]},
+  {"type": "Text", "props": {"text": "after it"}}
+]}

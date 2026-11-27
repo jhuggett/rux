@@ -1,0 +1,5 @@
+{"type": "Stack", "props": {"gap": 2}, "children": [
+  {"type": "Meter", "props": {"label": "Disk", "value": 0.81, "sub": "162 / 200 GB"}},
+  {"type": "Meter", "props": {"label": "Tokens", "value": 3200, "max": 8000}},
+  {"type": "Meter", "props": {"label": "Percent given as 0-100", "value": 45}}
+]}

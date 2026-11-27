@@ -1,0 +1,13 @@
+{"type": "Graph", "props": {
+  "nodes": [
+    {"id": "src", "label": "checkout", "status": "done"},
+    {"id": "build", "label": "build", "status": "done", "sub": "2m 10s"},
+    {"id": "lint", "label": "lint", "status": "failed"},
+    {"id": "test", "label": "test", "status": "running", "sub": "412/800"},
+    {"id": "deploy", "label": "deploy", "status": "waiting"}
+  ],
+  "edges": [
+    {"from": "src", "to": "build"}, {"from": "src", "to": "lint"},
+    {"from": "build", "to": "test", "live": true}, {"from": "test", "to": "deploy", "label": "on green"},
+    {"from": "lint", "to": "deploy", "dashed": true}
+  ]}}

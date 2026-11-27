@@ -1,0 +1,4 @@
+{"type": "Tabs", "props": {"tabs": ["Summary", "Logs"]}, "children": [
+  {"type": "Text", "props": {"text": "Build passed in 42s."}},
+  {"type": "Text", "props": {"text": "ok  github.com/x/y  0.4s\nok  github.com/x/z  1.2s", "mono": true}}
+]}

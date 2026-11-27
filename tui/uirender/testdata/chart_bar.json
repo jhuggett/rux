@@ -1,0 +1,2 @@
+{"type": "Chart", "props": {"kind": "bar", "labels": ["Q1", "Q2", "Q3", "Q4"],
+  "series": [{"name": "2025", "data": [12, 19, 15, 22]}, {"name": "2026", "data": [14, 23, 18, 30]}], "height": 160}}

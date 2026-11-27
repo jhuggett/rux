@@ -1,0 +1,8 @@
+{"type": "List", "props": {"items": [
+  {"title": "Build linux/amd64", "status": "done", "badge": "42s"},
+  {"title": "Build darwin/arm64", "status": "running", "sub": "compiling tui/uirender", "badge": "running"},
+  {"title": "Integration tests", "status": "waiting", "sub": "waiting for builds"},
+  {"title": "Lint", "status": "failed", "sub": "3 issues in render.go", "href": "https://example.com/lint"},
+  {"title": "Docs", "status": "idle"},
+  "a plain string item"
+]}}

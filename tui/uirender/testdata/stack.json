@@ -1,0 +1,13 @@
+{"type": "Stack", "props": {"gap": 2}, "children": [
+  {"type": "Heading", "props": {"text": "Stacks", "level": 2}},
+  {"type": "Stack", "props": {"direction": "horizontal", "gap": 2}, "children": [
+    {"type": "Badge", "props": {"text": "go 1.27", "tone": "green"}},
+    {"type": "Badge", "props": {"text": "3 warnings", "tone": "warn"}},
+    {"type": "Badge", "props": {"text": "1 error", "tone": "error"}}
+  ]},
+  {"type": "Stack", "props": {"direction": "horizontal", "gap": 4}, "children": [
+    {"type": "Text", "props": {"text": "Left column with a fairly long paragraph that has to wrap because the row is split between two children."}},
+    {"type": "Text", "props": {"text": "Right column, also wrapping onto a few lines when space is shared.", "tone": "muted"}}
+  ]},
+  {"type": "Stack", "props": {"align": "center"}, "children": [{"type": "Text", "props": {"text": "centered"}}]}
+]}
